@@ -1,3 +1,7 @@
+#Uploaded to Git "MPAs_warming" on April 10, 2017: https://github.com/johnfbruno/MPAs_warming.git
+
+#THIS IS A TEST !!!
+
 ############################
 #### new code for MPA warming project for new large grain (not downscaled, N=Native) CMPI5 extract 
 #creatd March 23, 2017 by JB, based on code snippets from CC
