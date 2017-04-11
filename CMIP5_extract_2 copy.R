@@ -1,14 +1,16 @@
 #Uploaded to Git "MPAs_warming" on April 10, 2017: https://github.com/johnfbruno/MPAs_warming.git
-
-#OK that test worked, now Im moving the folder / file to a new location on my desktop.  Can I just drag it over?  Will GH desktop know? 
+#new path to files in desktop Git folder: MPA_warming ms files for Git:  Dropbox/JB/Manuscripts/MPA_warming ms files for Git/MPAs_warming
 
 ############################
 #### new code for MPA warming project for new large grain (not downscaled, N=Native) CMPI5 extract 
 #creatd March 23, 2017 by JB, based on code snippets from CC
 ############################
 
-setwd("~/Dropbox/MPAs_warming/Layers/CMIP5/updated_CMIP5_files") 
 library(raster)
+
+setwd("~/Dropbox/MPAs_warming/Layers/CMIP5/updated_CMIP5_files") 
+
+setwd("~/Dropbox/JB/Manuscripts/MPA_warming ms files for Git/MPAs_warming") #set to local Git folder
 
 ##########################
 ### Mean, Native 8.5 ####
