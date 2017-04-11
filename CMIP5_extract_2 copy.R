@@ -1,6 +1,6 @@
 #Uploaded to Git "MPAs_warming" on April 10, 2017: https://github.com/johnfbruno/MPAs_warming.git
 
-#THIS IS A TEST !!!
+#OK that test worked, now Im moving the folder / file to a new location on my desktop.  Can I just drag it over?  Will GH desktop know? 
 
 ############################
 #### new code for MPA warming project for new large grain (not downscaled, N=Native) CMPI5 extract 
