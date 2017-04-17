@@ -59,7 +59,7 @@ length(tropical_ocean_mpa.trend_mean.8.5N) #2458
 write.csv(tropical_ocean_mpa.trend_mean.8.5N, file="tropical_ocean_mpa.trend_mean.8.5N.csv")
 
 #Subtropical MPAs 23.5-40
-subtropical_ocean_mpa<-subset(Ocean_mpa,Centroid_Latitude<40&Centroid_Latitude>23.5|Centroid_Latitude>-40&Centroid_Latitude<(-23.5)) #subset the points in subtropical waters
+subtropical_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude<40&Centroid_Latitude>23.5|Centroid_Latitude>-40&Centroid_Latitude<(-23.5)) #subset the points in subtropical waters
 points(subtropical_ocean_mpa[,2:3], col="blue") 
 subtropical_ocean_mpa.trend_mean.8.5N<-extract(meanTrend8.5N,subtropical_ocean_mpa[,2:3])
 mean(subtropical_ocean_mpa.trend_mean.8.5N) #/yr = 3.5 degrees c over 100 years
@@ -69,7 +69,7 @@ length(subtropical_ocean_mpa.trend_mean.8.5N) #
 write.csv(subtropical_ocean_mpa.trend_mean.8.5N, file="ST_ocean_mpa.trend_mean.8.5N.csv")
 
 #Temerate MPAs 40-66.5
-temperate_ocean_mpa<-subset(Ocean_mpa,Centroid_Latitude<66.5&Centroid_Latitude>40.0|Centroid_Latitude>-66.5&Centroid_Latitude<(-40.0)) #subset the points in temperate waters
+temperate_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude<66.5&Centroid_Latitude>40.0|Centroid_Latitude>-66.5&Centroid_Latitude<(-40.0)) #subset the points in temperate waters
 points(temperate_ocean_mpa[,2:3], col="green") 
 temperate_ocean_mpa.trend_mean.8.5N<-extract(meanTrend8.5N,temperate_ocean_mpa[,2:3])
 mean(temperate_ocean_mpa.trend_mean.8.5N) #/yr = 3.5 degrees c over 100 years
@@ -93,57 +93,62 @@ write.csv(polar_ocean_mpa.trend_mean.8.5N, file="polar_ocean_mpa.trend_mean.8.5N
 ##########################
 
 #set up the model projections
+source("revrotate..R") #make sure file is in pathway, or setwd() to the attached file
 maxTrend8.5N<-raster("trend_yearmax_ensemble_RCP85.nc")
 extent(maxTrend8.5N)<-c(-180,180,-90,90) #need to reset for this layer, orginal orientation was 0-360 longitude
 plot(maxTrend8.5N) #have a look
+maxTrend8.5N<-revrotate(maxTrend8.5N)
+extent(maxTrend8.5N)<-c(-180,180,-90,90)
+plot(maxTrend8.5N)
+plot(maxTrend8.5N, main = ("RCP 8.5 warming rate for max SST"),  ylim = c(-71.2, 71.2), col=rev(rainbow(200, start=.8, end=.23)))
+points(ocean_mpa[,2:3], pch=20, cex=.5)
 
 #all MPAs
 nn.buffered.dat<-read.csv("~/Dropbox/MPAs_warming/Data/nn_extractedA2c.csv") #read in .csv nn_extractedA2.csv with the MPA coordinates
 ocean_mpa<-subset(nn.buffered.dat,nn.buffered.dat$km<50) #subset the points less than 50 km from water
 oceanmpa.trend_max.8.5N<-extract(maxTrend8.5N,ocean_mpa[,2:3])
-max(oceanmpa.trend_max.8.5N) #0.0351363/yr = 3.5 degrees c over 100 years
+mean(oceanmpa.trend_max.8.5N) #0.0351363/yr = 3.5 degrees c over 100 years
 sd(oceanmpa.trend_max.8.5N)
 hist(oceanmpa.trend_max.8.5N, main="max trend all MPAs RCP8.5")
 length(oceanmpa.trend_max.8.5N) #8236
 write.csv(oceanmpa.trend_max.8.5N, file="oceanmpa.trend_max.8.5.csv")
 
 #no-take reserves
-reserves<-read.csv("~/Dropbox/MPAs_warming/Data/notakeonly_coord.csv")  #read in .csv for no-take marine reserves
+reserves<-read.csv("notakeonly_coord.csv")  #read in .csv for no-take marine reserves
 plot(maxTrend8.5N)
 points(reserves[,1:2])
 reserves.trend_max.8.5N<-extract(maxTrend8.5N,reserves[,1:2])
-max(reserves.trend_max.8.5N) #0.03260264/yr = 3.5 degrees c over 100 years
+mean(reserves.trend_max.8.5N) #0.03260264/yr = 3.5 degrees c over 100 years
 sd(reserves.trend_max.8.5N)
 length(reserves.trend_max.8.5N) #309
 write.csv(reserves.trend_max.8.5N, file="reserves.trend_max.8.5.csv")
 
-plot(maxTrend8.5N)
-
 #Tropical MPAs < 23.5
 tropical_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude>(-23.5)&Centroid_Latitude<23.5) #subset the points in tropical waters
+plot(maxTrend8.5N, main = ("RCP 8.5 warming rate for mean SST"),  ylim = c(-71.2, 71.2), col=rev(rainbow(200, start=.8, end=.23)))
 points(tropical_ocean_mpa[,2:3], col="red") 
 tropical_ocean_mpa.trend_max.8.5N<-extract(maxTrend8.5N,tropical_ocean_mpa[,2:3])
-max(tropical_ocean_mpa.trend_max.8.5N) #0.03119445/yr = 3.5 degrees c over 100 years
+mean(tropical_ocean_mpa.trend_max.8.5N) #0.03119445/yr = 3.5 degrees c over 100 years
 sd(tropical_ocean_mpa.trend_max.8.5N) #0.002228162
 hist(tropical_ocean_mpa.trend_max.8.5N, main="max trend tropical MPAs RCP8.5")
 length(tropical_ocean_mpa.trend_max.8.5N) #2458
 write.csv(tropical_ocean_mpa.trend_max.8.5N, file="tropical_ocean_mpa.trend_max.8.5N.csv")
 
 #Subtropical MPAs 23.5-40
-subtropical_ocean_mpa<-subset(Ocean_mpa,Centroid_Latitude<40&Centroid_Latitude>23.5|Centroid_Latitude>-40&Centroid_Latitude<(-23.5)) #subset the points in subtropical waters
+subtropical_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude<40&Centroid_Latitude>23.5|Centroid_Latitude>-40&Centroid_Latitude<(-23.5)) #subset the points in subtropical waters
 points(subtropical_ocean_mpa[,2:3], col="blue") 
 subtropical_ocean_mpa.trend_max.8.5N<-extract(maxTrend8.5N,subtropical_ocean_mpa[,2:3])
-max(subtropical_ocean_mpa.trend_max.8.5N) #/yr = 3.5 degrees c over 100 years
+mean(subtropical_ocean_mpa.trend_max.8.5N) #/yr = 3.5 degrees c over 100 years
 sd(subtropical_ocean_mpa.trend_max.8.5N) #
 hist(subtropical_ocean_mpa.trend_max.8.5N, main="max trend subtropical MPAs RCP8.5")
 length(subtropical_ocean_mpa.trend_max.8.5N) #
 write.csv(subtropical_ocean_mpa.trend_max.8.5N, file="ST_ocean_mpa.trend_max.8.5N.csv")
 
 #Temerate MPAs 40-66.5
-temperate_ocean_mpa<-subset(Ocean_mpa,Centroid_Latitude<66.5&Centroid_Latitude>40.0|Centroid_Latitude>-66.5&Centroid_Latitude<(-40.0)) #subset the points in temperate waters
+temperate_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude<66.5&Centroid_Latitude>40.0|Centroid_Latitude>-66.5&Centroid_Latitude<(-40.0)) #subset the points in temperate waters
 points(temperate_ocean_mpa[,2:3], col="green") 
 temperate_ocean_mpa.trend_max.8.5N<-extract(maxTrend8.5N,temperate_ocean_mpa[,2:3])
-max(temperate_ocean_mpa.trend_max.8.5N) #/yr = 3.5 degrees c over 100 years
+mean(temperate_ocean_mpa.trend_max.8.5N) #/yr = 3.5 degrees c over 100 years
 sd(temperate_ocean_mpa.trend_max.8.5N) #
 hist(temperate_ocean_mpa.trend_max.8.5N, main="max trend temperate MPAs RCP8.5")
 length(temperate_ocean_mpa.trend_max.8.5N) #
@@ -153,7 +158,7 @@ write.csv(temperate_ocean_mpa.trend_max.8.5N, file="temperate_ocean_mpa.trend_ma
 polar_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude<(-66.5)|Centroid_Latitude>66.5) #subset the points in polar waters
 points(polar_ocean_mpa[,2:3], col="white") 
 polar_ocean_mpa.trend_max.8.5N<-extract(maxTrend8.5N,polar_ocean_mpa[,2:3])
-max(polar_ocean_mpa.trend_max.8.5N) #/yr = 3.5 degrees c over 100 years
+mean(polar_ocean_mpa.trend_max.8.5N) #/yr = 3.5 degrees c over 100 years
 sd(polar_ocean_mpa.trend_max.8.5N) #
 hist(polar_ocean_mpa.trend_max.8.5N, main="max trend polar MPAs RCP8.5")
 length(polar_ocean_mpa.trend_max.8.5N) #
@@ -164,9 +169,15 @@ write.csv(polar_ocean_mpa.trend_max.8.5N, file="polar_ocean_mpa.trend_max.8.5N.c
 ##########################
 
 #set up the model projections
+source("revrotate..R") #make sure file is in pathway, or setwd() to the attached file
 meanTrend4.5N<-raster("trend_yearmean_ensemble_tos_RCP45.nc") #trend_yearmean_ensemble_tos_RCP45.nc
 extent(meanTrend4.5N)<-c(-180,180,-90,90) #need to reset for this layer, orginal orientation was 0-360 longitude
 plot(meanTrend4.5N) #have a look
+meanTrend4.5N<-revrotate(meanTrend4.5N)
+extent(meanTrend4.5N)<-c(-180,180,-90,90)
+plot(meanTrend4.5N)
+plot(meanTrend4.5N, main = ("RCP 4.5 warming rate for mean SST"),  ylim = c(-71.2, 71.2), col=rev(rainbow(200, start=.8, end=.23)))
+points(ocean_mpa[,2:3], pch=20, cex=.5)
 
 #all MPAs
 nn.buffered.dat<-read.csv("~/Dropbox/MPAs_warming/Data/nn_extractedA2c.csv") #read in .csv nn_extractedA2.csv with the MPA coordinates
@@ -179,7 +190,7 @@ length(oceanmpa.trend_mean.4.5N) #8236
 write.csv(oceanmpa.trend_mean.4.5N, file="oceanmpa.trend_mean.4.5.csv")
 
 #no-take reserves
-reserves<-read.csv("~/Dropbox/MPAs_warming/Data/notakeonly_coord.csv")  #read in .csv for no-take marine reserves
+reserves<-read.csv("notakeonly_coord.csv")  #read in .csv for no-take marine reserves
 plot(meanTrend4.5N)
 points(reserves[,1:2])
 reserves.trend_mean.4.5N<-extract(meanTrend4.5N,reserves[,1:2])
@@ -187,8 +198,6 @@ mean(reserves.trend_mean.4.5N)
 sd(reserves.trend_mean.4.5N)
 length(reserves.trend_mean.4.5N) #309
 write.csv(reserves.trend_mean.4.5N, file="reserves.trend_mean.4.5.csv")
-
-plot(meanTrend4.5N)
 
 #Tropical MPAs < 23.5
 tropical_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude>(-23.5)&Centroid_Latitude<23.5) #subset the points in tropical waters
@@ -234,38 +243,41 @@ write.csv(polar_ocean_mpa.trend_mean.4.5N, file="polar_ocean_mpa.trend_mean.4.5N
 ### Max, Native 4.5 ####
 ##########################
 
-#set up the model projections
+source("revrotate..R") #make sure file is in pathway, or setwd() to the attached file
 maxTrend4.5N<-raster("trend_yearmax_ensemble_RCP45.nc") #trend_yearmax_ensemble_tos_RCP45.nc
 extent(maxTrend4.5N)<-c(-180,180,-90,90) #need to reset for this layer, orginal orientation was 0-360 longitude
 plot(maxTrend4.5N) #have a look
+maxTrend4.5N<-revrotate(maxTrend4.5N)
+extent(maxTrend4.5N)<-c(-180,180,-90,90)
+plot(maxTrend4.5N)
+plot(maxTrend4.5N, main = ("RCP 4.5 warming rate for max SST"),  ylim = c(-71.2, 71.2), col=rev(rainbow(200, start=.8, end=.23)))
+points(ocean_mpa[,2:3], pch=20, cex=.5)
 
 #all MPAs
 nn.buffered.dat<-read.csv("~/Dropbox/MPAs_warming/Data/nn_extractedA2c.csv") #read in .csv nn_extractedA2.csv with the MPA coordinates
 ocean_mpa<-subset(nn.buffered.dat,nn.buffered.dat$km<50) #subset the points less than 50 km from water
 oceanmpa.trend_max.4.5N<-extract(maxTrend4.5N,ocean_mpa[,2:3])
-max(oceanmpa.trend_max.4.5N) 
+mean(oceanmpa.trend_max.4.5N) 
 sd(oceanmpa.trend_max.4.5N)
 hist(oceanmpa.trend_max.4.5N, main="max trend all MPAs RCP4.5")
 length(oceanmpa.trend_max.4.5N) #8236
 write.csv(oceanmpa.trend_max.4.5N, file="oceanmpa.trend_max.4.5.csv")
 
 #no-take reserves
-reserves<-read.csv("~/Dropbox/MPAs_warming/Data/notakeonly_coord.csv")  #read in .csv for no-take marine reserves
+reserves<-read.csv("notakeonly_coord.csv")  #read in .csv for no-take marine reserves
 plot(maxTrend4.5N)
 points(reserves[,1:2])
 reserves.trend_max.4.5N<-extract(maxTrend4.5N,reserves[,1:2])
-max(reserves.trend_max.4.5N)
+mean(reserves.trend_max.4.5N)
 sd(reserves.trend_max.4.5N)
 length(reserves.trend_max.4.5N) #309
 write.csv(reserves.trend_max.4.5N, file="reserves.trend_max.4.5.csv")
-
-plot(maxTrend4.5N)
 
 #Tropical MPAs < 23.5
 tropical_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude>(-23.5)&Centroid_Latitude<23.5) #subset the points in tropical waters
 points(tropical_ocean_mpa[,2:3], col="red") 
 tropical_ocean_mpa.trend_max.4.5N<-extract(maxTrend4.5N,tropical_ocean_mpa[,2:3])
-max(tropical_ocean_mpa.trend_max.4.5N) 
+mean(tropical_ocean_mpa.trend_max.4.5N) 
 sd(tropical_ocean_mpa.trend_max.4.5N)
 hist(tropical_ocean_mpa.trend_max.4.5N, main="max trend tropical MPAs RCP4.5")
 length(tropical_ocean_mpa.trend_max.4.5N) #2458
@@ -275,7 +287,7 @@ write.csv(tropical_ocean_mpa.trend_max.4.5N, file="tropical_ocean_mpa.trend_max.
 subtropical_ocean_mpa<-subset(Ocean_mpa,Centroid_Latitude<40&Centroid_Latitude>23.5|Centroid_Latitude>-40&Centroid_Latitude<(-23.5)) #subset the points in subtropical waters
 points(subtropical_ocean_mpa[,2:3], col="blue") 
 subtropical_ocean_mpa.trend_max.4.5N<-extract(maxTrend4.5N,subtropical_ocean_mpa[,2:3])
-max(subtropical_ocean_mpa.trend_max.4.5N) 
+mean(subtropical_ocean_mpa.trend_max.4.5N) 
 sd(subtropical_ocean_mpa.trend_max.4.5N) 
 hist(subtropical_ocean_mpa.trend_max.4.5N, main="max trend subtropical MPAs RCP4.5")
 length(subtropical_ocean_mpa.trend_max.4.5N) 
@@ -285,7 +297,7 @@ write.csv(subtropical_ocean_mpa.trend_max.4.5N, file="ST_ocean_mpa.trend_max.4.5
 temperate_ocean_mpa<-subset(Ocean_mpa,Centroid_Latitude<66.5&Centroid_Latitude>40.0|Centroid_Latitude>-66.5&Centroid_Latitude<(-40.0)) #subset the points in temperate waters
 points(temperate_ocean_mpa[,2:3], col="green") 
 temperate_ocean_mpa.trend_max.4.5N<-extract(maxTrend4.5N,temperate_ocean_mpa[,2:3])
-max(temperate_ocean_mpa.trend_max.4.5N) 
+mean(temperate_ocean_mpa.trend_max.4.5N) 
 sd(temperate_ocean_mpa.trend_max.4.5N) 
 hist(temperate_ocean_mpa.trend_max.4.5N, main="max trend temperate MPAs RCP4.5")
 length(temperate_ocean_mpa.trend_max.4.5N) 
@@ -295,7 +307,7 @@ write.csv(temperate_ocean_mpa.trend_max.4.5N, file="temperate_ocean_mpa.trend_ma
 polar_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude<(-66.5)|Centroid_Latitude>66.5) #subset the points in polar waters
 points(polar_ocean_mpa[,2:3], col="white") 
 polar_ocean_mpa.trend_max.4.5N<-extract(maxTrend4.5N,polar_ocean_mpa[,2:3])
-max(polar_ocean_mpa.trend_max.4.5N) 
+mean(polar_ocean_mpa.trend_max.4.5N) 
 sd(polar_ocean_mpa.trend_max.4.5N) 
 hist(polar_ocean_mpa.trend_max.4.5N, main="max trend polar MPAs RCP4.5")
 length(polar_ocean_mpa.trend_max.4.5N) 
