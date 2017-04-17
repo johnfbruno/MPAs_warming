@@ -15,13 +15,20 @@ setwd("~/Dropbox/JB/Manuscripts/MPA_warming ms files for Git/MPAs_warming") #set
 ##########################
 ### Mean, Native 8.5 ####
 ##########################
+
 #set up the model projections
+source("revrotate..R") #make sure file is in pathway, or setwd() to the attached file
 meanTrend8.5N<-raster("trend_yearmean_ensemble_tos_RCP85.nc")
 extent(meanTrend8.5N)<-c(-180,180,-90,90) #need to reset for this layer, orginal orientation was 0-360 longitude
 plot(meanTrend8.5N) #have a look
+meanTrend8.5N<-revrotate(meanTrend8.5N)
+extent(meanTrend8.5N)<-c(-180,180,-90,90)
+plot(meanTrend8.5N)
+plot(meanTrend8.5N, main = ("RCP 8.5 warming rate for mean SST"),  ylim = c(-71.2, 71.2), col=rev(rainbow(200, start=.8, end=.23)))
+points(ocean_mpa[,2:3], pch=20, cex=.5)
 
 #all MPAs
-nn.buffered.dat<-read.csv("~/Dropbox/MPAs_warming/Data/nn_extractedA2c.csv") #read in .csv nn_extractedA2.csv with the MPA coordinates
+nn.buffered.dat<-read.csv("nn_extractedA2c.csv") #read in .csv nn_extractedA2.csv with the MPA coordinates
 ocean_mpa<-subset(nn.buffered.dat,nn.buffered.dat$km<50) #subset the points less than 50 km from water
 oceanmpa.trend_mean.8.5N<-extract(meanTrend8.5N,ocean_mpa[,2:3])
 mean(oceanmpa.trend_mean.8.5N) #0.0351363/yr = 3.5 degrees c over 100 years
@@ -31,8 +38,8 @@ length(oceanmpa.trend_mean.8.5N) #8236
 write.csv(oceanmpa.trend_mean.8.5N, file="oceanmpa.trend_mean.8.5.csv")
 
 #no-take reserves
-reserves<-read.csv("~/Dropbox/MPAs_warming/Data/notakeonly_coord.csv")  #read in .csv for no-take marine reserves
-plot(meanTrend8.5N)
+reserves<-read.csv("notakeonly_coord.csv")  #read in .csv for no-take marine reserves
+plot(meanTrend8.5N, main = ("RCP 8.5 warming rate for mean SST"),  ylim = c(-71.2, 71.2), col=rev(rainbow(200, start=.8, end=.23)))
 points(reserves[,1:2])
 reserves.trend_mean.8.5N<-extract(meanTrend8.5N,reserves[,1:2])
 mean(reserves.trend_mean.8.5N) #0.03260264/yr = 3.5 degrees c over 100 years
@@ -40,10 +47,9 @@ sd(reserves.trend_mean.8.5N)
 length(reserves.trend_mean.8.5N) #309
 write.csv(reserves.trend_mean.8.5N, file="reserves.trend_mean.8.5.csv")
 
-plot(meanTrend8.5N)
-
 #Tropical MPAs < 23.5
 tropical_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude>(-23.5)&Centroid_Latitude<23.5) #subset the points in tropical waters
+plot(meanTrend8.5N, main = ("RCP 8.5 warming rate for mean SST"),  ylim = c(-71.2, 71.2), col=rev(rainbow(200, start=.8, end=.23)))
 points(tropical_ocean_mpa[,2:3], col="red") 
 tropical_ocean_mpa.trend_mean.8.5N<-extract(meanTrend8.5N,tropical_ocean_mpa[,2:3])
 mean(tropical_ocean_mpa.trend_mean.8.5N) #0.03119445/yr = 3.5 degrees c over 100 years
@@ -296,7 +302,7 @@ length(polar_ocean_mpa.trend_max.4.5N)
 write.csv(polar_ocean_mpa.trend_max.4.5N, file="polar_ocean_mpa.trend_max.4.5N.csv")
 
 ######################
-### Extract all SST values to compare to MPA values
+### Extract all SST values to compare to MPA values ####
 ######################
 
 
@@ -367,13 +373,12 @@ y<-values(mskd.R_dscld)
 plot(x,y)
 
 
-
 (MPA.vals_dscld-MPA.vals_non.dscld)-(y-x) #overall mean
 hist(MPA.vals_dscld-MPA.vals_non.dscld)
 hist(y-x)
 
 ################
-### figures ###
+### figures ####
 ###############
 
 # boxplots
@@ -408,12 +413,30 @@ abline(h=-23.5, lty=3)
 abline(h=-40, lty=3)
 abline(h=-66.5, lty=3)
 
+scalebar(d=4000,xy=c(80,-54),label=c(0,'',4000),cex=.9,type='bar',divs=4,below="kilometers",adj=c(0.5,-1.1))
 
-scalebar(d=4000,xy=c(85,-46),label=c(0,'',4000),cex=.9,type='bar',divs=4,below="kilometers",adj=c(0.5,-1.1))
+#function for creating the compass rose (goes above the plotting function)
+compassRose<-function(x,y,rot=0,cex=1,cex.dir=1,llwd=1) {
+  oldcex<-par(cex=cex)
+  mheight<-strheight("M")
+  xylim<-par("usr")
+  plotdim<-par("pin")
+  xmult<-(xylim[2]-xylim[1])/(xylim[4]-xylim[3])*plotdim[2]/plotdim[1]
+  point.angles<-seq(0,7*pi/4,by=pi/4)+pi*rot/180
+  crspans<-rep(c(mheight*3,mheight/2),4)
+  xpoints<-cos(point.angles)*crspans*xmult+x
+  ypoints<-sin(point.angles)*crspans+y
+  polygon(xpoints,ypoints,lwd=llwd)
+  txtxpoints<-cos(point.angles[c(1,3,5,7)])*1.33*crspans[1]*xmult+x
+  txtypoints<-sin(point.angles[c(1,3,5,7)])*1.33*crspans[1]+y
+  text(txtxpoints,txtypoints,c("E","N","W","S"),cex=cex.dir)
+  par(oldcex) 
+}
+
+compassRose(-125,-53,cex=.5,cex.dir=1.2) #goes after initial plot
 
 
-
-########## stuff below is misc recent code, mostly from Apri 6, 2017
+### stuff below is misc recent code, mostly from Apri 6, 2017 ####
 
 
 #1)
