@@ -46,8 +46,8 @@ extent(mean85) <- map.extent
 
 Test plot temperature raster and MPAs - baseR
 ```{r}
-plot(mean85)
-points(mpas[,2:3], pch = 10, cex = 0.3)
+plot(mean85) # Uses the default palette `col= rev(terrain.colors(255))` from`raster::plot`
+points(mpas[,2:3], pch = 10, cex = 0.3) 
 ```
 
 Test plot temperature raster and MPAs - rasterVis
@@ -70,6 +70,12 @@ gplot(mean85) +
   geom_raster(aes(fill = value)) +
   scale_fill_viridis() +
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.2) + 
+  guides(fill = guide_colorbar(title = NULL, barheight = 16, raster = TRUE)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_y_continuous(breaks = seq(-90, 90, 30)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60)) 
   
   
 ```
@@ -83,6 +89,10 @@ plot(mean85)
 ```
 
 ## Remove land-based temperatures
+
+Check out:
+
+http://neondataskills.org/R/Raster-Data-In-R/
 
 
 
