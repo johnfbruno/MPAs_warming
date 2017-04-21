@@ -102,10 +102,13 @@ http://neondataskills.org/R/Raster-Data-In-R/
 Read in Natural Earth 1:110m world vector, then convert to simple raster.
 
 ```{r}
-# library(httr) # Make web requests
-packrat::clean()
-# Natural Earth 110m data
+# Natural Earth 110m data. Comes as zip file 
 url <- "http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip"
+
+dest <- "../data/ne110.zip" # zip file destination
+download.file(url = url, destfile = dest, method = "auto")
+
+unzip(dest, exdir = "../data")
 
 ```
 
