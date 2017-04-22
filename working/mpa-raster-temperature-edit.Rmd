@@ -1,0 +1,159 @@
+---
+title: "MPAs and climate change: land surface temperature removal"
+output: html_notebook
+author: Mark Ruddy
+date: 2017-04-22
+---
+
+## Task summary
+
+The project aims to look at projected climate warming in Marine Protected Areas. It uses climate models ([CMIP5](http://cmip-pcmdi.llnl.gov/cmip5/)) run for two emission scenarios (Representative Concentration Pathways - [RCPs](https://www.skepticalscience.com/rcp.php?t=1)) - 4.5degC and 8.5degC - developed as part of Intergovernmental Panel on Climate Change's (IPCC) Fifth Assessment Report ([AR5](http://www.ipcc-data.org/sim/gcm_monthly/AR5/)).
+
+As part of the study, the temperature data need to be modified to exclude land-based temperature measures. Additionally, adequate maps of the data need to be created.
+
+This notebook will provide code that removes the land surface temperatures from the CMIP5 surface temperature rasters.
+
+## Setup
+
+```{r}
+# Packages
+library(dplyr) # Data wrangling and exploration
+library(tidyr) # Data wrangling
+library(raster) # Dealing with rasters
+library(ncdf4) # Required - viewing and working with climate data in netCDF format
+```
+
+
+## Remove land-based temperatures
+
+### Inspect CMIP5 RCP8.5 data 
+
+Inspect structure and values using `ncdf4` package.
+
+```{r}
+nc <- nc_open(filename = name85) # Open connection to netCDF file
+print(nc) # View dataset structure
+nc_close(nc) # Close connection
+rm("nc")
+```
+
+
+Inspect *Longitude and Latitude* grid.
+```{r}
+nc <- nc_open(filename = name85)
+
+lon <- ncvar_get(nc = nc, varid = "lon") # Longitude named "lon" in netCDF
+
+lat <- ncvar_get(nc = nc, varid = "lat") # Latitude named "lat" in netCDF
+
+dim(lon); dim(lat)
+
+head(lon); head(lat)
+
+nc_close(nc) # Close connection
+
+rm("lon", "lat", "nc")
+```
+Data is on a 1 \* 1 degree grid.
+
+Inspect *Time* variable.
+```{r}
+nc <- nc_open(filename = name85)
+
+t <- ncvar_get(nc = nc, varid = "time") # Time named "time" in netCDF
+
+tunits <- ncatt_get(nc = nc, varid = "time", attname = "units")
+
+dim(t)
+
+tunits
+
+nc_close(nc) # Close connection
+
+rm("t", "tunits", "nc")
+```
+Only one time slice in the dataset.
+
+
+Inspect *Temperature* variable.
+```{r}
+nc <- nc_open(filename = name85) # Open connection to netCDF file
+
+print(nc) # View dataset structure
+
+dname <- "tos" # name of variable found from `print(nc)`
+
+tmp.df <- as_data_frame(ncvar_get(nc = nc, varid = dname)) # Get temperature (tmp) data 
+
+colnames(tmp.df) <- 1:180
+
+glimpse(tmp.df) # Peek at data
+
+nc_close(nc)  # Close connection
+
+rm("dname", "nc")
+```
+360 \* 180 dataset (1 \* 1 degree grid) of temperature trend values (? degree C / decade).
+
+Plot from temperature dataframe
+```{r}
+# library(ggplot2) # Graphics
+# library(viridis) # viridis colour scales for perceptually uniform palettes. See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
+
+
+ggplot(mean85) + 
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/")), barheight = 16, raster = TRUE)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0))
+```
+
+
+
+```{r}
+nc <- nc_open(filename = name85) # Open connection to netCDF file
+
+
+nc_close(nc)  # Close connection
+rm("nc")
+```
+
+### Obtain world land surface raster data
+
+Read in [Natural Earth](http://www.naturalearthdata.com/) 1:110m world vector, then convert to simple raster.
+
+```{r}
+# Natural Earth 110m data. Comes as zip file 
+url <- "http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip" # web location
+
+localDir <- "../data"
+
+if (!file.exists(localDir)) {
+  dir.create(localDir)
+}
+
+dwnld <- paste(localDir, basename(url), sep = "/") # zip file destination
+
+if (!file.exists(dwnld)) {
+  download.file(url = url, destfile = dwnld, method = "auto") # download from web
+  unzip(dwnld, exdir = localDir) # unzip
+}
+
+list.files(localDir) # check unzip
+
+rm("url", "localDir", "dwnld") # clean up workspace
+```
+
+
+
+Raster calculation
+<!-- Check out: -->
+<!-- http://neondataskills.org/R/Raster-Data-In-R/ -->
+
+
+
