@@ -131,15 +131,31 @@ land.gg <- fortify(land) # Convert shapefile to data_frame useable by ggplot. `F
 str(land.gg)
 
 # Test plot land
-ggplot(data = land.gg, aes(x = long, y = lat, group = group)) + 
+ggplot(data = land.gg, aes(x = long, y = lat, group = group)) + # Group is important. Tells ggplot to draw as separate not single polygons
   geom_polygon()
 
+rm("land")
 ```
-
-
 
 3. Plot Earth polygon over temperature raster
 
+```{r}
+p.land <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` as this 
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "white") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) + 
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
+
+p.land
+```
 
 
 
