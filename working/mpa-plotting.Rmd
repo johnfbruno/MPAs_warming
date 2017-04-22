@@ -32,7 +32,7 @@ mpas <- read.csv("../nn_extractedA2c.csv", header = TRUE)
 # glimpse(mpas) # Peek at the data
 ```
 
-CMIP5 RCP8.5
+Read CMIP5 RCP8.5
 ```{r}
 name85 <- "../trend_yearmean_ensemble_tos_RCP85.nc"
 mean85 <- raster(name85) # Read in raster
@@ -42,6 +42,7 @@ extent(mean85) <- map.extent # Change extent
 source("../revrotate..R") # Rotate raster layer to align with MPA points
 mean85 <- revrotate(mean85)
 extent(mean85) <- map.extent
+rm("name85", "map.extent")
 ```
 
 ## Plotting
@@ -140,7 +141,7 @@ rm("land")
 3. Plot Earth polygon over temperature raster
 
 ```{r}
-p.land <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` as this 
+p.land <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` as this 
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
   geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "white") +
