@@ -22,9 +22,14 @@ This notebook will provide code that removes the land surface temperatures from 
 ```{r}
 # Packages
 library(dplyr) # Data wrangling and exploration
+library(ggplot2) # Plotting
 library(tidyr) # Data wrangling
 library(raster) # Dealing with rasters
+library(rasterVis) # Dealing with rasters
+library(viridis) # Perceptually sound palettes
+library(sp) # Classes and methods for spatial data
 library(ncdf4) # Required - viewing and working with climate data in netCDF format
+library(rgdal) # For working with shapefiles
 ```
 
 ## Approach
@@ -44,7 +49,7 @@ extent(mean85) <- map.extent # Change extent
 source("../revrotate..R") # Rotate raster layer to align with MPA points
 mean85 <- revrotate(mean85)
 extent(mean85) <- map.extent
-rm("name85", "map.extent")
+rm("map.extent")
 ```
 
 Inspect structure and values using `ncdf4` package.
@@ -53,7 +58,7 @@ Inspect structure and values using `ncdf4` package.
 nc <- nc_open(filename = name85) # Open connection to netCDF file
 print(nc) # View dataset structure
 nc_close(nc) # Close connection
-rm("nc")
+rm("name85","nc")
 ```
 
 
@@ -97,7 +102,7 @@ colnames(tmp.df) <- 1:180
 glimpse(tmp.df) # Peek at data
 
 nc_close(nc)  # Close connection
-rm("dname", "nc")
+rm(dname, nc)
 ```
 360 \* 180 dataset (1 \* 1 degree grid) of temperature trend values (? degree C / decade).
 
@@ -124,34 +129,52 @@ if (!file.exists(dwnld)) {
 
 list.files(localDir) # check unzip
 
-rm("url", "localDir", "dwnld") # clean up workspace
+rm(url, localDir, dwnld) # clean up workspace
 ```
 
-## Mask raster with land vector
+## Mask CMIP5 raster with land surface
 
+### Mask directly using land polygons 
 
 ```{r read-land-vector}
-library(rgdal) # For working with shapefiles
+
 # localDir object from chunk `get-land-vector`. Alternatively, specify location of the land vector shapefile.
 
 land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above.
+
+# View projection
+land@proj4string
 ```
 
-Mask raster to remove cells covered by land.
+Mask raster to remove cells covered by land. Updates cells within mask to NA.
 ```{r}
 mean85.sst <- mask(x = mean85, mask = land, inverse = TRUE)
 ```
 
-### Check coastline cells
+### Check MPA cell values 
+
+Query raster cells to check that MPA SST cells are not NA.
 
 ```{r}
-xlims <- c(110, 150)
+mpa.cells <- raster::extract(x = mean85.sst, y = mpas[,2:3]) # Use `raster::extract()` to disambiguate from `tidyr::extract`
+
+length(mpa.cells[is.na(mpa.cells)])
+```
+There's a problme here. 3590 of the 8456 MPAs fall in NA cells - no temperature data. Evidently some raster cells are being masked by `raster::mask` that we don't want to exclude. 
+
+Let's plot a part of the raster around Australia to see what's going on.
+
+```{r}
+land.gg <- fortify(land) # Convert shapefile to data_frame useable by ggplot. `Fortify` may be deprecated in the future and the `broom` package should be used.
+
+# Set coordinate limits around Australia
+xlims <- c(110, 160)
 ylims <- c(-50, -10)
 
-p.test <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` as this 
+p.test <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
-  # geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "white") +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), colour = "green", fill = NA) +
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
   xlim(xlims) +
   ylim(ylims) +
@@ -160,10 +183,187 @@ p.test <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` as this
   ggtitle("RCP 8.5 warming rate for mean SST") + 
   xlab("Longitude") +
   ylab("Latitude") +
-  # scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
-  # scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) + 
+  # scale_y_continuous(expand = c(0,0)) +
+  # scale_x_continuous(expand = c(0,0)) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
 
 p.test
+rm(p.test, xlims, ylims, land.gg)
 ```
+
+We can see there are cells near the coasts that have been removed by the land surface mask. There seems to be a bias towards eliminating cells to the east of polygons.
+
+
+
+
+Another approach could be to turn the land polygons into a raster and then use this land raster to crop and mask the CMIP5 data. Inspiration is this stackexchange post: https://gis.stackexchange.com/a/92227. However, inspection of the `raster::rasterize` function, which transfers values from vector objects to raster, description states that:
+
+> For polygons, values are transferred if the polygon covers the center of a raster cell. For lines, values are transferred to all cells that are touched by a line. You can combine this behaviour by rasterizing polygons as lines first and then as polygons.
+
+So, because the centre of the cell is used as selection criteria here, masking with a polygon will mean we'll likely lose some cells we need to retain, ie the the near-coast cells that have centres within land but overlap sea surface. 
+
+### Mask CMIP5 raster using land coverage of cells
+
+There's a getCover option within `raster::rasterize` that assigns a value for the fraction (percentage) of the cell covered by the masking layer. This could be useful in a workflow such as:
+
+1. Compare land polygons with CMIP5 and assign coverage values to a new raster, 'coverage'.
+2. Mask the CMIP5 with 'coverage' and update CMIP5 cells to NA where 'coverage'==100.
+
+First, find coverage of cells by land surface.
+
+```{r}
+# Produce new raster of coverage
+
+t1 <- Sys.time()
+coverage <- rasterize(x = land, y = mean85, getCover = TRUE)
+t2 <- Sys.time()
+t2 - t1
+# Takes 1.6 minutes on my 2012 MacBook Pro
+
+# Check coverage plot
+plot(coverage)
+
+rm(t1, t2)
+```
+
+Then update CMIP5 cells to NA where coverage is 100%.
+
+```{r}
+mean85.sst <- mask(x = mean85, mask = coverage, maskvalue = 100)
+```
+
+Query raster cells to check that MPA SST cells are not NA.
+
+```{r}
+mpa.cells <- raster::extract(x = mean85.sst, y = mpas[,2:3]) # Use `raster::extract()` to disambiguate from `tidyr::extract()`
+
+length(mpa.cells[is.na(mpa.cells)])
+
+rm(mpa.cells)
+```
+There are 373 MPAs located on ocean cells. The projections for the CMIP5 and land surface are the same - CMIP5 is a geographic coordiante system from WGS84. Evidently there's some disagreement between the coordinates of MPAs and the land surface dataset. This could be error in the location of the MPAs or generalisation (simplification) of the small scale land surface polygons causing overlaps with near-shore MPAs. Or it 
+
+```{r}
+# Clean up
+
+rm(mean85.sst, coverage)
+```
+
+
+### Mask CMIP5 with MPA point information and land surface
+
+So long as the study retains all cells that show sea temperatures and/or have MPA points in them we can be relaxed about how those cells are identified. A pragmatic approach is to:
+
+1. Mask CMIP5 with land surface into 'cmip5.masked' raster.
+2. Use the MPA coordinates to identify from CMIP5 *only* the cells we want to retain in a 'mpa.cells' raster.
+3. Merge 'cmip5.masked' and 'mpa.cells' to give 'cmip5.sst'.
+
+Mask CMIP5 with land surface
+```{r}
+mean85.masked <- mask(x = mean85, mask = land, inverse = TRUE)
+```
+
+Get MPA cells
+```{r}
+spts <- SpatialPoints(mpas[,2:3]) # Make MPAs into SpatialPoints class
+mpa.cells <- mask(x = mean85, mask = spts)
+
+# plot(mpa.cells) # Plot check
+rm(spts)
+```
+
+Merge land masked CMIP5 and MPA cells
+
+```{r}
+mean85.merge <- merge(mean85.masked, mpa.cells)
+
+# plot(mean85.merge) # Plot check
+```
+
+Check for NA cells where MPAs are located
+
+```{r}
+mpa.check <- raster::extract(x = mean85.merge, y = SpatialPoints(mpas[,2:3])) # Use `raster::extract()` to disambiguate from `tidyr::extract()`
+
+length(mpa.check[is.na(mpa.check)])
+
+rm(mpa.check)
+```
+The query shows that all MPAs fall within cells containing temperature values.
+
+Plot cells and MPAs around Australia to check.
+
+```{r}
+land.gg <- fortify(land) # Convert shapefile to data_frame useable by ggplot. `Fortify` may be deprecated in the future and the `broom` package should be used.
+
+# Set coordinate limits around Australia
+xlims <- c(110, 160)
+ylims <- c(-50, 0)
+
+p.test <- gplot(mean85.merge) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  # geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), colour = "green", fill = NA) +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
+  xlim(xlims) +
+  ylim(ylims) +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  # scale_y_continuous(expand = c(0,0)) +
+  # scale_x_continuous(expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
+
+p.test
+
+rm(p.test, xlims, ylims, land.gg)
+```
+The map suggests some cells containing MPAs haven't been picked up by `raster::mask`. Why?
+
+Check projection.
+```{r}
+crs <- mean85@crs # Coordinate reference system (CRS) of CMIP5 (wgs84)
+
+spts <- SpatialPoints(mpas[,2:3]) # Make MPAs into SpatialPoints class
+
+spts@proj4string <- crs # Assign CMIP5 CRS to mpas
+
+mpa.cells <- mask(x = mean85, mask = spts)
+
+# plot(mpa.cells) # Plot check
+rm(crs, spts)
+```
+Projections are the same and are not an issue.
+
+
+Let's have a closer look at the algorithm `raster::mask` uses to select cells from point locations. There is no information in the `raster::mask` description but `raster::rasterize` says that where point data is used to interact with a raster:
+
+> ...each point is assigned to a grid cell. Points that fall on a border between cells are placed in the cell to the right and/or in the cell below. The value of a grid cell is determined by the values associated with the points and function fun.
+
+This looks like the behaviour seen in the plots above
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

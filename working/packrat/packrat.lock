@@ -18,6 +18,11 @@ Source: CRAN
 Version: 2.2.0
 Hash: 712773a3439bd32db5c40938e1a9aac2
 
+Package: RColorBrewer
+Source: CRAN
+Version: 1.1-2
+Hash: c0d56cd15034f395874c870141870c25
+
 Package: Rcpp
 Source: CRAN
 Version: 0.12.9
@@ -49,6 +54,16 @@ Version: 1.17.1
 Hash: 97cb6f6293cd18d17df77a6383cc6763
 Requires: bitops
 
+Package: colorspace
+Source: CRAN
+Version: 1.3-2
+Hash: 0bf8618b585fa98eb23414cd3ab95118
+
+Package: dichromat
+Source: CRAN
+Version: 2.0-0
+Hash: 08eed0c80510af29bb15f840ccfe37ce
+
 Package: digest
 Source: CRAN
 Version: 0.6.12
@@ -71,6 +86,28 @@ Source: CRAN
 Version: 1.4
 Hash: b2a47a2b91737978cf50ba95825a9cd1
 
+Package: ggplot2
+Source: CRAN
+Version: 2.2.1
+Hash: 46e5cb78836848aa44655e577433f54b
+Requires: digest, gtable, lazyeval, plyr, reshape2, scales, tibble
+
+Package: gridExtra
+Source: CRAN
+Version: 2.2.1
+Hash: 8f54b57d4b0598ed5b27e0eafe86a670
+Requires: gtable
+
+Package: gtable
+Source: CRAN
+Version: 0.2.0
+Hash: cd78381a9d3fea966ac39bd0daaf5554
+
+Package: hexbin
+Source: CRAN
+Version: 1.27.1
+Hash: 9f94c576cc4b9e83fd714ae8387272e6
+
 Package: highr
 Source: CRAN
 Version: 0.6
@@ -92,6 +129,17 @@ Source: CRAN
 Version: 1.15.1
 Hash: eed7437e2b614c9e3923b7932b16ac97
 Requires: digest, evaluate, highr, markdown, stringr, yaml
+
+Package: labeling
+Source: CRAN
+Version: 0.3
+Hash: ecf589b42cd284b03a4beb9665482d3e
+
+Package: latticeExtra
+Source: CRAN
+Version: 0.6-28
+Hash: efdf3a10a129129f7b8f4ae5a0d7ec3d
+Requires: RColorBrewer
 
 Package: lazyeval
 Source: CRAN
@@ -120,6 +168,12 @@ Source: CRAN
 Version: 0.5
 Hash: 463550cf44fb6f0a2359368f42eebe62
 
+Package: munsell
+Source: CRAN
+Version: 0.4.3
+Hash: f96d896947fcaf9b6d0074002e9f4f9d
+Requires: colorspace
+
 Package: ncdf4
 Source: CRAN
 Version: 1.16
@@ -130,11 +184,30 @@ Source: CRAN
 Version: 0.4.8-1
 Hash: 6ad605ba7b4b476d84be6632393f5765
 
+Package: plyr
+Source: CRAN
+Version: 1.8.4
+Hash: ce3897d2ea6dabdb2c0a217b25f5fe99
+Requires: Rcpp
+
 Package: raster
 Source: CRAN
 Version: 2.5-8
 Hash: cab4d071908e672aca4dbd776361eea5
 Requires: Rcpp, sp
+
+Package: rasterVis
+Source: CRAN
+Version: 0.41
+Hash: 64336f3e06daf248edfae070510dd555
+Requires: RColorBrewer, hexbin, latticeExtra, raster, sp, viridisLite,
+    zoo
+
+Package: reshape2
+Source: CRAN
+Version: 1.4.2
+Hash: 85d9947f8a5e187dff7f18265b96cb13
+Requires: Rcpp, plyr, stringr
 
 Package: rgdal
 Source: CRAN
@@ -154,6 +227,12 @@ Source: CRAN
 Version: 1.2
 Hash: fdcac51a7f47decd60556ceefc3c26b1
 Requires: backports
+
+Package: scales
+Source: CRAN
+Version: 0.4.1
+Hash: bc8d2233a63b068b0f60b18303d60c55
+Requires: RColorBrewer, Rcpp, dichromat, labeling, munsell, plyr
 
 Package: sp
 Source: CRAN
@@ -183,7 +262,23 @@ Version: 0.6.1
 Hash: 304887c13ceb691ff8bd5560c62b271a
 Requires: Rcpp, dplyr, lazyeval, magrittr, stringi, tibble
 
+Package: viridis
+Source: CRAN
+Version: 0.4.0
+Hash: 5bdac1bcf74a10a7a96f82191f498ab7
+Requires: ggplot2, gridExtra, viridisLite
+
+Package: viridisLite
+Source: CRAN
+Version: 0.2.0
+Hash: 10f0c25af3dc84eaae10f5854f47efdb
+
 Package: yaml
 Source: CRAN
 Version: 2.1.14
 Hash: c81230c3a7d9ba20607ad6b4331173d1
+
+Package: zoo
+Source: CRAN
+Version: 1.8-0
+Hash: df9711767f56f086e8a8d1f0fb926ff6

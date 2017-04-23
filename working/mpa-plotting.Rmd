@@ -74,7 +74,7 @@ rm("pts")
 # library(rasterVis) # Handling netCDF
 # library(viridis) # viridis colour scales for perceptually uniform palettes. See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
 
-p <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` as this 
+p <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
@@ -141,7 +141,7 @@ rm("land")
 3. Plot Earth polygon over temperature raster
 
 ```{r}
-p.land <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` as this 
+p.land <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
   geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "white") +
