@@ -49,7 +49,12 @@ extent(mean85) <- map.extent # Change extent
 source("../revrotate..R") # Rotate raster layer to align with MPA points
 mean85 <- revrotate(mean85)
 extent(mean85) <- map.extent
+
+mean85@crs
+
 rm("map.extent")
+# writeRaster(x = mean85, filename = "../mean85.nc") # Output
+
 ```
 
 Inspect structure and values using `ncdf4` package.
@@ -129,7 +134,7 @@ if (!file.exists(dwnld)) {
 
 list.files(localDir) # check unzip
 
-rm(url, localDir, dwnld) # clean up workspace
+rm(url, dwnld) # clean up workspace
 ```
 
 ## Mask CMIP5 raster with land surface
@@ -144,6 +149,10 @@ land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to sp
 
 # View projection
 land@proj4string
+# Looks to match CMIP5 apart from "+no_defs". This item ensures no defaults are read in. So probably a good idea to implement this in the CMIP5 data.
+
+rm(localDir)
+
 ```
 
 Mask raster to remove cells covered by land. Updates cells within mask to NA.
@@ -267,8 +276,10 @@ Get MPA cells
 ```{r}
 spts <- SpatialPoints(mpas[,2:3]) # Make MPAs into SpatialPoints class
 mpa.cells <- mask(x = mean85, mask = spts)
-
+# writeRaster(mpa.cells, file = "../mpa_cells.nc") # For cross-check in GIS
 # plot(mpa.cells) # Plot check
+length(mpa.cells[!is.na(mpa.cells)])
+
 rm(spts)
 ```
 
@@ -284,7 +295,6 @@ Check for NA cells where MPAs are located
 
 ```{r}
 mpa.check <- raster::extract(x = mean85.merge, y = SpatialPoints(mpas[,2:3])) # Use `raster::extract()` to disambiguate from `tidyr::extract()`
-
 length(mpa.check[is.na(mpa.check)])
 
 rm(mpa.check)
@@ -300,11 +310,11 @@ land.gg <- fortify(land) # Convert shapefile to data_frame useable by ggplot. `F
 xlims <- c(110, 160)
 ylims <- c(-50, 0)
 
-p.test <- gplot(mpa.cells) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+p.test <- gplot(mpa.cells, maxpixels = 50000) + # Note: uses `rasterVis::gplot` here not `ggplot`
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
   # geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), colour = "green", fill = NA) +
-  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") +
   xlim(xlims) +
   ylim(ylims) +
   guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
@@ -320,7 +330,8 @@ p.test
 
 rm(p.test, xlims, ylims, land.gg)
 ```
-The map suggests some cells containing MPAs haven't been picked up by `raster::mask`. Why?
+The map suggests some cells containing MPAs haven't been picked up by `raster::mask`. 
+Why should this be the case?
 
 Check projection.
 ```{r}
@@ -337,24 +348,84 @@ rm(crs, spts)
 ```
 Projections are the same and are not an issue.
 
+Exporting the masked and extracted rasters and checking these alongside MPA points in QGIS shows all cells containing MPAs to be captured. 
 
-Let's have a closer look at the algorithm `raster::mask` uses to select cells from point locations. There is no information in the `raster::mask` description but `raster::rasterize` says that where point data is used to interact with a raster:
+```{r export-for-test}
+# For cross-check in GIS
+writeRaster(x = mean85, filename = "../mean85.nc")
+writeRaster(mpa.cells, file = "../mpa_cells.nc") 
+```
 
-> ...each point is assigned to a grid cell. Points that fall on a border between cells are placed in the cell to the right and/or in the cell below. The value of a grid cell is determined by the values associated with the points and function fun.
+So there's something wrong with how the cells are being plotted by `rasterVis::gplot`. 
 
-This looks like the behaviour seen in the plots above
+Examining the `rasterVis::gplot` (https://github.com/cran/rasterVis/blob/master/R/gplot.R) function shows this relies on  `sampleRegular` and `xyFromCell` from `raster::` to extract centroid cell values.
+
+Check this function. Maybe the argument "maxpixels" within `gplot` (passed to internal call to `raster::sampleregular`) is a problem? In our case we have 360\*180 = 64800 cells. Probably some cells are being missed because there aren't enough sampling points.
+
+Try plot again raising "maxpixels" to 100000.
+
+```{r gplot-check}
+land.gg <- fortify(land) # Convert shapefile to data_frame useable by ggplot. `Fortify` may be deprecated in the future and the `broom` package should be used.
+points <- mpas[,2:3]
+
+# Set coordinate limits around Australia
+xlims <- c(110, 160)
+ylims <- c(-50, 0)
+
+p.test <- gplot(mpa.cells, maxpixels = 100000) + # Note: uses `rasterVis::gplot` here not `ggplot`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  # geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), colour = "green", fill = NA) +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") +
+  xlim(xlims) +
+  ylim(ylims) +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  # scale_y_continuous(expand = c(0,0)) +
+  # scale_x_continuous(expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
+
+p.test
+
+rm(p.test, xlims, ylims, land.gg)
+```
 
 
+Yes! The plot now seems to failfully represent the data. Cells are now shown on the plot that are present in the raster of CMIP5 data masked by MPA points. We can be sure earlier plotting problems weren't related to data integrity.
+
+NOTE: once set to maxpixels = 100000 in this plot, future plots keep this "maxpixels" setting until a different value is given.
 
 
+## Summary
 
+In summary, the code needed to removes land surface temperatures from the CMIP5 surface temperature rasters is as follows:
 
+Requires land surface and CMIP5 datasets.
 
+Mask CMIP5 with land surface
+```{r}
+# "cmip" is CMIP5 netCDF read in by raster
+# "land" is vector polygon land surface dataset
+cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
+```
 
+Get MPA cells
+```{r}
+# "mpas.xy" are the MPA longitude and latitude coordinate data
 
+mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
+mpa.cells <- mask(x = cmip, mask = mpas)
+```
 
+Merge land masked CMIP5 and MPA cells
+```{r}
+cmip.sst <- merge(cmip.mask, mpa.cells)
 
-
+# plot(mean85.merge) # Plot check
+```
 
 
 
