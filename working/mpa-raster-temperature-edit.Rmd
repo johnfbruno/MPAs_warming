@@ -37,9 +37,18 @@ library(rgdal) # For working with shapefiles
 
 The approach I'll take is to select cells from the CMIP5 grid that fall *wholly* within the boundary of the world land surface polygon. This is because CMIP5 data is provided as a 360 \* 180 (1 \* 1 degree) grid. Raster-based analysis of temperatures - ie to quantify whole ocean or region warming - uses temperature data for each cell, so temperature values from single cells are what we're interested in. By only discarding cells that fall entirely within the land surface we ensure that SSTs for MPAs found within grid cells that overlap coastlines will be retained for analysis.
 
+
+## MPAs
+
+Marine Protected Areas
+```{r}
+mpas <- read.csv("../nn_extractedA2c.csv", header = TRUE)
+# glimpse(mpas) # Peek at the data
+```
+
 ## Inspect CMIP5 RCP8.5 data 
 
-Read CMIP5 RCP8.5
+Read CMIP5 RCP8.5 mean
 ```{r}
 name85 <- "../trend_yearmean_ensemble_tos_RCP85.nc"
 mean85 <- raster(name85) # Read in raster
@@ -61,9 +70,9 @@ Inspect structure and values using `ncdf4` package.
 
 ```{r}
 nc <- nc_open(filename = name85) # Open connection to netCDF file
-print(nc) # View dataset structure
+# print(nc) # View dataset structure
 nc_close(nc) # Close connection
-rm("name85","nc")
+rm(nc)
 ```
 
 
@@ -104,12 +113,12 @@ print(nc) # View dataset structure
 dname <- "tos" # name of variable found from `print(nc)`
 tmp.df <- as_data_frame(ncvar_get(nc = nc, varid = dname)) # Get temperature (tmp) data 
 colnames(tmp.df) <- 1:180
-glimpse(tmp.df) # Peek at data
+# glimpse(tmp.df) # Peek at data
 
 nc_close(nc)  # Close connection
-rm(dname, nc)
+rm(dname, nc, name85)
 ```
-360 \* 180 dataset (1 \* 1 degree grid) of temperature trend values (? degree C / decade).
+360 \* 180 dataset (1 \* 1 degree grid) of temperature trend values (? degree C / year).
 
 ## Obtain world land surface raster data
 
@@ -155,10 +164,14 @@ rm(localDir)
 
 ```
 
-Mask raster to remove cells covered by land. Updates cells within mask to NA.
+Mask raster to remove cells covered by land. Updates cells within mask to NA. But from the `raster::rasterize` description the masking algorithm works in the following way:
+
+> For polygons, values are transferred if the polygon covers the center of a raster cell.
+
 ```{r}
 mean85.sst <- mask(x = mean85, mask = land, inverse = TRUE)
 ```
+So this is not likely to be a complete solution - likely that near-shore MPAs will be missing temperature data.
 
 ### Check MPA cell values 
 
@@ -169,7 +182,7 @@ mpa.cells <- raster::extract(x = mean85.sst, y = mpas[,2:3]) # Use `raster::extr
 
 length(mpa.cells[is.na(mpa.cells)])
 ```
-There's a problme here. 3590 of the 8456 MPAs fall in NA cells - no temperature data. Evidently some raster cells are being masked by `raster::mask` that we don't want to exclude. 
+There's a problem here. 3590 of the 8456 MPAs fall in NA cells - no temperature data. Evidently some raster cells are being masked by `raster::mask` that we don't want to exclude. 
 
 Let's plot a part of the raster around Australia to see what's going on.
 
@@ -180,14 +193,14 @@ land.gg <- fortify(land) # Convert shapefile to data_frame useable by ggplot. `F
 xlims <- c(110, 160)
 ylims <- c(-50, -10)
 
-p.test <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+p.test <- gplot(mean85.sst, maxpixels = 50000) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`. maxpixels = 50000 is default out of the box for gplot
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
   geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), colour = "green", fill = NA) +
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
   xlim(xlims) +
   ylim(ylims) +
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
   theme(legend.title = element_text(size = 9)) +
   ggtitle("RCP 8.5 warming rate for mean SST") + 
   xlab("Longitude") +
@@ -220,17 +233,17 @@ There's a getCover option within `raster::rasterize` that assigns a value for th
 
 First, find coverage of cells by land surface.
 
-```{r}
+```{r coverage-test}
 # Produce new raster of coverage
+# Takes 1.6 minutes on my 2012 MacBook Pro 
 
 t1 <- Sys.time()
 coverage <- rasterize(x = land, y = mean85, getCover = TRUE)
 t2 <- Sys.time()
 t2 - t1
-# Takes 1.6 minutes on my 2012 MacBook Pro
 
 # Check coverage plot
-plot(coverage)
+# plot(coverage)
 
 rm(t1, t2)
 ```
@@ -238,6 +251,7 @@ rm(t1, t2)
 Then update CMIP5 cells to NA where coverage is 100%.
 
 ```{r}
+# Run chunk `coverage-test` to plot
 mean85.sst <- mask(x = mean85, mask = coverage, maskvalue = 100)
 ```
 
@@ -317,7 +331,7 @@ p.test <- gplot(mpa.cells, maxpixels = 50000) + # Note: uses `rasterVis::gplot` 
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") +
   xlim(xlims) +
   ylim(ylims) +
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
   theme(legend.title = element_text(size = 9)) +
   ggtitle("RCP 8.5 warming rate for mean SST") + 
   xlab("Longitude") +
@@ -379,7 +393,7 @@ p.test <- gplot(mpa.cells, maxpixels = 100000) + # Note: uses `rasterVis::gplot`
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") +
   xlim(xlims) +
   ylim(ylims) +
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
   theme(legend.title = element_text(size = 9)) +
   ggtitle("RCP 8.5 warming rate for mean SST") + 
   xlab("Longitude") +
@@ -401,37 +415,135 @@ NOTE: once set to maxpixels = 100000 in this plot, future plots keep this "maxpi
 
 ## Summary
 
-In summary, the code needed to removes land surface temperatures from the CMIP5 surface temperature rasters is as follows:
+In summary, the code needed to remove land surface temperatures from the CMIP5 surface temperature rasters is as follows:
 
 Requires land surface and CMIP5 datasets.
 
-Mask CMIP5 with land surface
 ```{r}
+## Mask CMIP5 with land surface ##
 # "cmip" is CMIP5 netCDF read in by raster
 # "land" is vector polygon land surface dataset
 cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
-```
 
-Get MPA cells
-```{r}
+## Get MPA cells ##
 # "mpas.xy" are the MPA longitude and latitude coordinate data
-
 mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
 mpa.cells <- mask(x = cmip, mask = mpas)
-```
 
-Merge land masked CMIP5 and MPA cells
-```{r}
+## Merge land masked CMIP5 and MPA cells ##
 cmip.sst <- merge(cmip.mask, mpa.cells)
-
-# plot(mean85.merge) # Plot check
 ```
 
 
+Let's test it with another CMIP5 raster file
+
+Read in Marine Protected Areas
+```{r}
+mpas.in <- read.csv("../nn_extractedA2c.csv", header = TRUE)
+
+mpas.xy <- mpas.in[,2:3]
+
+rm(mpas.in)
+```
+
+Read in CMIP5 RCP4.5 max
+```{r get-cmip-test}
+cmip <- "../trend_yearmax_ensemble_RCP45.nc"
+cmip <- raster(cmip) # Read in raster
+map.extent <- c(-180, 180, -90, 90) # Reset for layer, orginal orientation was 0-360 longitude
+extent(cmip) <- map.extent # Change extent
+
+source("../revrotate..R") # Rotate raster layer to align with MPA points
+cmip <- revrotate(cmip)
+extent(cmip) <- map.extent
+
+rm("map.extent")
+```
+
+Obtain world land surface raster data
+
+Read in [Natural Earth](http://www.naturalearthdata.com/) 1:110m world vector, then convert to simple raster.
+
+```{r get-land-test}
+# Natural Earth 110m data. Comes as zip file 
+url <- "http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip" # web location
+
+localDir <- "../data"
+
+if (!file.exists(localDir)) {
+  dir.create(localDir)
+}
+
+dwnld <- paste(localDir, basename(url), sep = "/") # zip file destination
+
+if (!file.exists(dwnld)) {
+  download.file(url = url, destfile = dwnld, method = "auto") # download from web
+  unzip(dwnld, exdir = localDir) # unzip
+}
+
+land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above.
+
+rm(url, localDir, dwnld) # clean up workspace
+```
 
 
+```{r cmip-sst-only}
+## Mask CMIP5 with land surface ##
+# "cmip" is CMIP5 netCDF read in by raster
+# "land" is vector polygon land surface dataset
+cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
+
+## Get MPA cells ##
+# "mpas.xy" are the MPA longitude and latitude coordinate data
+mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
+
+mpa.cells <- mask(x = cmip, mask = mpas)
+
+## Merge land masked CMIP5 and MPA cells ##
+cmip.sst <- merge(cmip.mask, mpa.cells)
+```
 
 
+Check for NA cells where MPAs are located
+
+```{r}
+mpa.check <- raster::extract(x = cmip.sst, y = SpatialPoints(mpas.xy)) # Use `raster::extract()` to disambiguate from `tidyr::extract()`
+length(mpa.check[is.na(mpa.check)])
+
+rm(mpa.check)
+```
+Zero cells with temperature data intersecting with MPA locations.
+
+
+Test plot of Australia
+
+```{r gplot-test}
+land.gg <- fortify(land) # Convert shapefile to data_frame useable by ggplot. `Fortify` may be deprecated in the future and the `broom` package should be used.
+# Set coordinate limits around Australia
+
+xlims <- c(110, 160)
+ylims <- c(-50, 0)
+
+p.test <- gplot(cmip.sst, maxpixels = 100000) + # Note: uses `rasterVis::gplot` here not `ggplot`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma") +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), colour = "green", fill = NA) +
+  geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") +
+  xlim(xlims) +
+  ylim(ylims) +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("RCP 4.5 warming rate for max SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  # scale_y_continuous(expand = c(0,0)) +
+  # scale_x_continuous(expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
+
+p.test
+
+rm(p.test, xlims, ylims, land.gg)
+```
 
 
 
