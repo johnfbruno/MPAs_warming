@@ -300,7 +300,7 @@ land.gg <- fortify(land) # Convert shapefile to data_frame useable by ggplot. `F
 xlims <- c(110, 160)
 ylims <- c(-50, 0)
 
-p.test <- gplot(mean85.merge) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+p.test <- gplot(mpa.cells) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
   # geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), colour = "green", fill = NA) +
