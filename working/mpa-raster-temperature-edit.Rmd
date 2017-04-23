@@ -362,13 +362,15 @@ rm(crs, spts)
 ```
 Projections are the same and are not an issue.
 
-Exporting the masked and extracted rasters and checking these alongside MPA points in QGIS shows all cells containing MPAs to be captured. 
+Exporting the masked and extracted rasters and checking these alongside MPA points in QGIS shows all cells containing MPAs to be captured. Here's a screengrab from QGIS where the land, MPA and MPA-cells data sets have been loaded.
 
 ```{r export-for-test}
 # For cross-check in GIS
-writeRaster(x = mean85, filename = "../mean85.nc")
-writeRaster(mpa.cells, file = "../mpa_cells.nc") 
+# writeRaster(x = mean85, filename = "../mean85.nc")
+# writeRaster(mpa.cells, file = "../mpa_cells.nc") 
 ```
+![Screengrab from QGIS](../images/qgis-australia-mpa-cells.png)
+
 
 So there's something wrong with how the cells are being plotted by `rasterVis::gplot`. 
 
