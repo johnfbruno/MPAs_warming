@@ -32,7 +32,7 @@ mpas <- read.csv("../nn_extractedA2c.csv", header = TRUE)
 # glimpse(mpas) # Peek at the data
 ```
 
-Read CMIP5 RCP8.5
+Read CMIP5 RCP8.5 mean
 ```{r}
 name85 <- "../trend_yearmean_ensemble_tos_RCP85.nc"
 mean85 <- raster(name85) # Read in raster
@@ -78,7 +78,7 @@ p <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
   theme(legend.title = element_text(size = 9)) +
   ggtitle("RCP 8.5 warming rate for mean SST") + 
   xlab("Longitude") +
@@ -146,7 +146,7 @@ p.land <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` - uses `ras
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
   geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "white") +
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/decade")), barheight = 16, raster = TRUE)) + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
   theme(legend.title = element_text(size = 9)) +
   ggtitle("RCP 8.5 warming rate for mean SST") + 
   xlab("Longitude") +
