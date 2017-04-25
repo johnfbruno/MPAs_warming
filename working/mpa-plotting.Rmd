@@ -20,7 +20,10 @@ This notebook will provide plots of SST with land surface removed (white or blac
 # Packages
 library(dplyr) # Data wrangling and exploration
 library(tidyr) # Data wrangling
+library(ggplot2) # Plotting
+library(viridis) # Perceptually correct palettes
 library(raster) # Dealing with rasters
+library(rasterVis) # Plotting rasters 
 library(ncdf4) # Required - viewing and working with climate data in netCDF format
 ```
 
@@ -56,7 +59,6 @@ points(mpas[,2:3], pch = 10, cex = 0.3)
 ### Test plot temperature raster and MPAs - rasterVis
 
 ```{r}
-# library(rasterVis) # Plotting rasters 
 pts <- mpas[,2:3] # MPA points
 levelplot(mean85, margin = FALSE, par.settings = viridisTheme()) + 
   layer(sp.points(pts, pch = 10, cex = 0.3))
@@ -141,11 +143,11 @@ rm("land")
 3. Plot Earth polygon over temperature raster
 
 ```{r}
-p.land <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+p.land <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
-  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "white") +
-  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
   guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
   theme(legend.title = element_text(size = 9)) +
   ggtitle("RCP 8.5 warming rate for mean SST") + 
@@ -156,7 +158,133 @@ p.land <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` - uses `ras
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
 
 p.land
+rm(p.land)
 ```
+
+### Plot with world map from maps::map
+
+Try using the world map dataset the comes with R in `maps::world` instread of Natural Earth shapefile.
+
+```{r}
+library(maps) # Display of maps
+
+world <- map_data(map = "world", interior = FALSE)
+
+p.land <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) + 
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
+
+p.land
+rm(p.land)
+```
+
+From comparing the two maps I think the shapefile looks better. The shapefile has been generalised to remove detail in coastlines and small island chains such as the Aleutians, which are otherwise present in `maps:world`.
+
+
+### Panel plot of globe and 3 regions
+
+
+Plot world.
+```{r}
+p.world <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+
+p.world
+```
+
+Plot Caribbean.
+We'll use `maps::world` here as it's more detailed at larger scales than Natural Earth's world .shp file.
+
+```{r}
+# Set 
+xlims = c(-90, -60)
+ylims = c(0, 35)
+world <- map_data(map = "world", interior = FALSE)
+
+p.carib <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  # geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+    geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("x") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_x_continuous(limits = xlims, expand = c(0, -1)) +
+  scale_y_continuous(limits = ylims, expand = c(0, -1)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
+
+p.carib
+```
+
+
+## Panel plot
+
+### Test panel plot 
+```{r}
+# library(gridExtra) # Grid arranged graphics
+# library(grid) # Grid arrangement
+
+grid.arrange(p.world, arrangeGrob(p.carib, p.carib, p.carib, heights = c(1/2, 1/2, 1/2), ncol = 3), ncol = 1, top = "Plots")
+```
+
+The guide_colorbar is not re-sizing within the grid. I'll try the suggestion given [here](https://github.com/tidyverse/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs) for producing a single legend.
+
+### Panel plot with separate legend
+
+
+```{r}
+# Map with no legend
+p.world_l <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", guide = "none") +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  # theme(plot.margin = margin(5, 15, 5, 5)) + # Removing guide trimmed right margin to y-axis label. Tgis plot.margin statement restores space.
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+
+p.world_l
+```
+
+
+```{r}
+  
+source("../functions/share_guide.R")
+
+grid_arrange_shared_guide(p.world_l, p.world_l, p.world_l, p.world_l)
+
+
+```
+
 
 
 
