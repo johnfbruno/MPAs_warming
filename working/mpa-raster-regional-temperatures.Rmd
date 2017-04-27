@@ -17,7 +17,6 @@ library(dplyr)
 library(tibble)
 ```
 
-
 ## Raster summary statistics
 
 Read in Marine Protected Areas
