@@ -59,6 +59,12 @@ Source: CRAN
 Version: 1.3-2
 Hash: 0bf8618b585fa98eb23414cd3ab95118
 
+Package: cowplot
+Source: CRAN
+Version: 0.7.0
+Hash: 2466c098180dba6d13128bbdafeb1eda
+Requires: ggplot2, gtable, plyr
+
 Package: dichromat
 Source: CRAN
 Version: 2.0-0

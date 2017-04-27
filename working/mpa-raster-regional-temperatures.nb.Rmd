@@ -1,47 +1,24 @@
 ---
-title: "Testing"
+title: "MPAs and climate change: regional sea-surface temperature means"
 output: html_notebook
 author: Mark Ruddy
-date: 2017-04-23
+date: 2017-04-27
 ---
 
+Task is to find mean temperature values for latitudinal regions of the globe.
 
-## Test intersection of points with raster in `raster::mask`
 
+Packages
 ```{r}
 library(raster)
+library(ncdf4)
+library(rgdal)
+library(dplyr)
+library(tibble)
 ```
-
-Make a raster.
-
-```{r}
-set.seed(42)
-r <- raster(ncol=72, nrow=36)
-r[] <-runif(ncell(r), 0, 1)
-plot(r)
-```
-
-Make some points
-
-```{r}
-set.seed(100)
-p <- data.frame(x = runif(10, min = -180, max = 180), y = runif(10, min = -100, max = 100))
-p <- SpatialPoints(p)
-```
-
-Select raster cells from points
-
-```{r}
-cells <- mask(x = r, mask = p)
-
-plot(cells); points(p, pch = 16, cex = 0.5)
-```
-
 
 
 ## Raster summary statistics
-
-Aims is to find summary statistics for a geographic region.
 
 Read in Marine Protected Areas
 ```{r}
@@ -54,8 +31,6 @@ rm(mpas.in)
 
 Read in CMIP5 RCP4.5 max
 ```{r get-cmip-test}
-library(raster)
-library(ncdf4)
 
 cmip <- "../trend_yearmax_ensemble_RCP45.nc"
 cmip <- raster(cmip) # Read in raster
@@ -73,7 +48,7 @@ rm("map.extent")
 Read in [Natural Earth](http://www.naturalearthdata.com/) 1:110m world vector, then convert to simple raster.
 
 ```{r get-land-test}
-library(rgdal)
+
 # Natural Earth 110m data. Comes as zip file 
 url <- "http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip" # web location
 
@@ -116,9 +91,6 @@ rm(cmip.mask)
 
 Find mean temperatures
 ```{r}
-library(dplyr)
-library(tibble)
-
 # Data.frame for outputs
 zones <- c("global", "tropical", "sub-tropical", "temperate", "polar")
 zone.means <- data_frame(
@@ -157,18 +129,9 @@ zone.means[which(zone.means$zone=="polar"),2] <- extent.means(cmip.sst, list(npo
 zone.means[which(zone.means$zone=="sub-tropical"),2] <- extent.means(cmip.sst, list(nsubtrop.ext, ssubtrop.ext))
 zone.means[which(zone.means$zone=="temperate"),2] <- extent.means(cmip.sst, list(ntemp.ext, stemp.ext))
 
-# View(zone.means)
+rm(list = ls(pattern = ".*ext$|.*lims$"))
 
-rm(list = ls(pattern = glob2rx("*ext")))
+zone.means <- zone.means %>% mutate(mean_value = signif(mean_value, 2))
+
+View(zone.means)
 ```
-
-
-
-Sense-check with different method
-```{r}
-
-```
-
-
-
-
