@@ -4,11 +4,12 @@
 #
 # Modfified by: Mark Ruddy
 # Date: 2017-04-25
+
+# grid.arrange(p.world, arrangeGrob(p.carib, p.carib, p.carib, heights = c(1/2, 1/2, 1/2), ncol = 3), ncol = 1, top = "Plots")
+
 #####################
 
-
-
-grid_arrange_shared_guide <- function(..., ncol = 3, nrow = 2, position = c("right")) {
+grid_arrange_shared_guide <- function(..., ncol = 3, nrow = 2, position = c("bottom", "right"), top = NULL) {
   
   plots <- list(...)
   position <- match.arg(position)
