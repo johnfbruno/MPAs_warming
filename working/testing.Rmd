@@ -131,6 +131,8 @@ zone.means <- data_frame(
 # Latitudinal zone extents
 ## Longitudinal limits
 long.lims <- c(-180, 180) 
+## Global
+globe.ext <- extent(c(long.lims), 0, 90)
 ## Tropical
 trop.ext <- extent(c(long.lims, -23.5, 23.5)) 
 ## Sub-tropical
@@ -152,22 +154,80 @@ zone.means[which(zone.means$zone=="tropical"),2] <- extract(cmip.sst, trop.ext, 
 
 ## Other
 ## Via function to get total means from raster combined, independent raster extents
-source("../functions/extent.means.R")
+source("../functions/extent.mean.R")
 zone.means[which(zone.means$zone=="polar"),2] <- extent.means(cmip.sst, list(npol.ext, spol.ext))
 zone.means[which(zone.means$zone=="sub-tropical"),2] <- extent.means(cmip.sst, list(nsubtrop.ext, ssubtrop.ext))
 zone.means[which(zone.means$zone=="temperate"),2] <- extent.means(cmip.sst, list(ntemp.ext, stemp.ext))
 
-# View(zone.means)
+# extent.mean.test <- function(raster, extents) { # raster and list of extents
+#   e <- extents
+#   v <- unlist(lapply(e, function(x) extract(raster, x)))
+#   n <- length(!is.na(v))
+#   vm <- mean(v, na.rm = TRUE)
+#   out <- list(vm, n)
+#   out
+# }
 
-rm(list = ls(pattern = glob2rx("*ext")))
+extent.mean.test <- function(raster, extents) { # raster and list of extents
+  e <- extents
+  v <- unlist(lapply(e, function(x) extract(raster, x)))
+  n <- length(v[!is.na(v)]) # count cells
+  # length(vec[!is.na(vec)])
+  vm <- mean(v, na.rm = TRUE)
+  out <- list(vm, n)
+  out
+}
+
+x <- extent.mean.test(cmip.sst, list(extent(c(long.lims), 0, 90), extent(c(long.lims), -90, 0)))
+
+# View(zone.means)
+x[[1]]; x[[2]]
+
+```
+
+Initialise tibble with list of lists
+```{r}
+l <- list(1:4)
+ll <- list(l,l)
+x <- 1:2
+tibble(
+  x = x,
+  y = ll
+)
+
 ```
 
 
 
-Sense-check with different method
+
+Check cell count
+Global sea temperature values.
 ```{r}
 
+# !is.na(cells)
+length(getValues(cmip.sst))-summary(cmip.sst)[6]
+
+
+vec <- unlist(lapply(list(extent(c(long.lims), 0, 90), extent(long.lims, -90, 0)), function(x) extract(cmip.sst, x)))
+
+length(vec[!is.na(vec)])
+
+length(!is.na(vec[[1]]))+length(vec[[2]]))
+n <- length(!is.na(vec)) # count cells
+n
+
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 
 
