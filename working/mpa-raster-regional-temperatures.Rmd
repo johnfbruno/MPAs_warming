@@ -19,8 +19,10 @@ library(tibble)
 
 ## Raster summary statistics
 
+### Read in datasets
+
 Read in Marine Protected Areas
-```{r}
+```{r get-mpas}
 mpas.in <- read.csv("../nn_extractedA2c.csv", header = TRUE)
 
 mpas.xy <- mpas.in[,2:3]
@@ -29,7 +31,7 @@ rm(mpas.in)
 ```
 
 Read in CMIP5 RCP4.5 max
-```{r get-cmip-test}
+```{r get-cmip}
 
 cmip <- "../trend_yearmax_ensemble_RCP45.nc"
 cmip <- raster(cmip) # Read in raster
@@ -46,7 +48,7 @@ rm("map.extent")
 
 Read in [Natural Earth](http://www.naturalearthdata.com/) 1:110m world vector, then convert to simple raster.
 
-```{r get-land-test}
+```{r get-land}
 
 # Natural Earth 110m data. Comes as zip file 
 url <- "http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip" # web location
@@ -69,7 +71,7 @@ land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to sp
 rm(url, localDir, dwnld) # clean up workspace
 ```
 
-
+Remove land-surface temperatures.
 ```{r cmip-sst-only}
 ## Mask CMIP5 with land surface ##
 # "cmip" is CMIP5 netCDF read in by raster
@@ -85,52 +87,85 @@ mpa.cells <- mask(x = cmip, mask = mpas)
 ## Merge land masked CMIP5 and MPA cells ##
 cmip.sst <- merge(cmip.mask, mpa.cells)
 
-rm(cmip.mask)
+rm(cmip.mask, mpa.cells)
 ```
 
-Find mean temperatures
-```{r}
-# Data.frame for outputs
-zones <- c("global", "tropical", "sub-tropical", "temperate", "polar")
-zone.means <- data_frame(
-  zone = zones, mean_value = NA
-)
+## Find mean temperatures.
 
+Define latitudinal zones. We're just setting Northern hemisphere limits. Mirror image southern hemisphere limits will be derived within the function to calculate zonal means.
+`raster::extract` will be used, which selects cells by their centroid from `raster::extents`. This means we won't have 
+
+```{r define-zones}
 # Find global means
 
-# Find regional means
+# Find regional means. 
 # Latitudinal zone extents
-## Longitudinal limits
-long.lims <- c(-180, 180) 
+
+global.lims <- c(0, 90)
+
 ## Tropical
-trop.ext <- extent(c(long.lims, -23.5, 23.5)) 
+trop.lims <- c(0, 23.5)
+
 ## Sub-tropical
-nsubtrop.ext <- extent(c(long.lims, 23.5, 40))
-ssubtrop.ext <- extent(c(long.lims, -40, -23.5))
+subtrop.lims <- c(23.5, 40) # N and S subtropical zone limits.
+
 ## Temperate
-ntemp.ext <- extent(c(long.lims, 40, 66.5))
-stemp.ext <- extent(c(long.lims, -66.5, -40))
+temp.lims <- c(40, 66.5) # N and S temperate zone limits.
+
 ## Polar
-npol.ext <- extent(c(long.lims, 66.5, 90))
-spol.ext <- extent(c(long.lims, -90, -66.5))
+polar.lims <- c(66.5, 90) # N and S polar zone limits.
 
-# Mean raster values
-## Global
-zone.means[which(zone.means$zone=="global"),2] <- cellStats(cmip.sst, stat = "mean", na.rm = TRUE)
+## All extents
+zone.lims <- list(global.lims, trop.lims, subtrop.lims, temp.lims, polar.lims)
+```
 
-## Tropical
-zone.means[which(zone.means$zone=="tropical"),2] <- extract(cmip.sst, trop.ext, fun = mean, na.rm = TRUE)
+Make data frame to hold zone names, limits and results.
+```{r zones-df}
+# Initialise data frame for outputs. A tibble.
+zones <- c("global", "tropical", "sub-tropical", "temperate", "polar")
 
-## Other
-## Via function to get total means from raster combined, independent raster extents
-source("../functions/extent.means.R")
-zone.means[which(zone.means$zone=="polar"),2] <- extent.means(cmip.sst, list(npol.ext, spol.ext))
-zone.means[which(zone.means$zone=="sub-tropical"),2] <- extent.means(cmip.sst, list(nsubtrop.ext, ssubtrop.ext))
-zone.means[which(zone.means$zone=="temperate"),2] <- extent.means(cmip.sst, list(ntemp.ext, stemp.ext))
+zone.means <- data_frame(
+  zone = zones, 
+  limits = zone.lims,
+  means = numeric(length = length(zones)), # Mean temperature
+  count = numeric(length = length(zones)) # !is.na cell count for cross-checking data capture
+)
 
 rm(list = ls(pattern = ".*ext$|.*lims$"))
-
-zone.means <- zone.means %>% mutate(mean_value = signif(mean_value, 2))
-
-View(zone.means)
 ```
+
+
+
+Calculate zonal mean temperature values.
+```{r }
+# Function to get raster means within extents
+# raster = raster of values
+# zones = df of zones, limits and empty values column for mean
+
+source("../functions/multi.extent.means.R") # Applying raster::extract over zone dataframe
+
+zone.means.sst <- multi.extent.means(cmip.sst, zone.means)
+
+zone.means.sst # Sea temperatures
+# zone.means.all # Sea and land temperatures
+```
+
+Let's check the cells captured by these limits to make sure there's no double counting. First, we'll find the number of non-NA cells in the SST raster globally, and then compare this number against the total of non-NA cells from recombining extracts made from splitting the original raster into zones. If the totals match then the latitudinal limits used develop the regional models don't overlap - cells aren't used twice. We would expect this not to be the case as `raster::extract` selects cells based on the proximity of their centroids within extents used to define sample areas.
+
+!is.na cells in SST raster globally
+```{r}
+# !is.na cells in SST raster
+length(getValues(cmip.sst))-summary(cmip.sst)[6]
+```
+
+Recombined !is.na cells
+```{r}
+sum(zone.means.sst$count[-1])
+```
+
+Cell totals from original SST raster and recombined zonal SST extracts both match. 
+
+
+
+
+

@@ -191,14 +191,14 @@ library(tibble)</code></pre>
 <!-- rnb-text-begin -->
 <div id="raster-summary-statistics" class="section level2">
 <h2>Raster summary statistics</h2>
+<div id="read-in-datasets" class="section level3">
+<h3>Read in datasets</h3>
 <p>Read in Marine Protected Areas</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubXBhcy5pbiA8LSByZWFkLmNzdihcIi4uL25uX2V4dHJhY3RlZEEyYy5jc3ZcIiwgaGVhZGVyID0gVFJVRSlcblxubXBhcy54eSA8LSBtcGFzLmluWywyOjNdXG5cbnJtKG1wYXMuaW4pXG5gYGAifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubXBhcy5pbiA8LSByZWFkLmNzdihcIi4uL25uX2V4dHJhY3RlZEEyYy5jc3ZcIiwgaGVhZGVyID0gVFJVRSlcbm1wYXMueHkgPC0gbXBhcy5pblssMjozXVxucm0obXBhcy5pbilcbmBgYCJ9 -->
 <pre class="r"><code>mpas.in &lt;- read.csv(&quot;../nn_extractedA2c.csv&quot;, header = TRUE)
-
 mpas.xy &lt;- mpas.in[,2:3]
-
 rm(mpas.in)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
@@ -206,17 +206,14 @@ rm(mpas.in)</code></pre>
 <p>Read in CMIP5 RCP4.5 max</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuXG5jbWlwIDwtIFwiLi4vdHJlbmRfeWVhcm1heF9lbnNlbWJsZV9SQ1A0NS5uY1wiXG5jbWlwIDwtIHJhc3RlcihjbWlwKSAjIFJlYWQgaW4gcmFzdGVyXG5tYXAuZXh0ZW50IDwtIGMoLTE4MCwgMTgwLCAtOTAsIDkwKSAjIFJlc2V0IGZvciBsYXllciwgb3JnaW5hbCBvcmllbnRhdGlvbiB3YXMgMC0zNjAgbG9uZ2l0dWRlXG5leHRlbnQoY21pcCkgPC0gbWFwLmV4dGVudCAjIENoYW5nZSBleHRlbnRcblxuc291cmNlKFwiLi4vcmV2cm90YXRlLlJcIikgIyBSb3RhdGUgcmFzdGVyIGxheWVyIHRvIGFsaWduIHdpdGggTVBBIHBvaW50c1xuY21pcCA8LSByZXZyb3RhdGUoY21pcClcbmV4dGVudChjbWlwKSA8LSBtYXAuZXh0ZW50XG5cbnJtKFwibWFwLmV4dGVudFwiKVxuYGBgIn0= -->
-<pre class="r"><code>
-cmip &lt;- &quot;../trend_yearmax_ensemble_RCP45.nc&quot;
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY21pcCA8LSBcIi4uL3RyZW5kX3llYXJtYXhfZW5zZW1ibGVfUkNQNDUubmNcIlxuY21pcCA8LSByYXN0ZXIoY21pcCkgIyBSZWFkIGluIHJhc3RlclxubWFwLmV4dGVudCA8LSBjKC0xODAsIDE4MCwgLTkwLCA5MCkgIyBSZXNldCBmb3IgbGF5ZXIsIG9yZ2luYWwgb3JpZW50YXRpb24gd2FzIDAtMzYwIGxvbmdpdHVkZVxuZXh0ZW50KGNtaXApIDwtIG1hcC5leHRlbnQgIyBDaGFuZ2UgZXh0ZW50XG5zb3VyY2UoXCIuLi9yZXZyb3RhdGUuUlwiKSAjIFJvdGF0ZSByYXN0ZXIgbGF5ZXIgdG8gYWxpZ24gd2l0aCBNUEEgcG9pbnRzXG5jbWlwIDwtIHJldnJvdGF0ZShjbWlwKVxuZXh0ZW50KGNtaXApIDwtIG1hcC5leHRlbnRcbnJtKFwibWFwLmV4dGVudFwiKVxuYGBgIn0= -->
+<pre class="r"><code>cmip &lt;- &quot;../trend_yearmax_ensemble_RCP45.nc&quot;
 cmip &lt;- raster(cmip) # Read in raster
 map.extent &lt;- c(-180, 180, -90, 90) # Reset for layer, orginal orientation was 0-360 longitude
 extent(cmip) &lt;- map.extent # Change extent
-
 source(&quot;../revrotate.R&quot;) # Rotate raster layer to align with MPA points
 cmip &lt;- revrotate(cmip)
 extent(cmip) &lt;- map.extent
-
 rm(&quot;map.extent&quot;)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
@@ -224,103 +221,142 @@ rm(&quot;map.extent&quot;)</code></pre>
 <p>Read in <a href="http://www.naturalearthdata.com/">Natural Earth</a> 1:110m world vector, then convert to simple raster.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuXG4jIE5hdHVyYWwgRWFydGggMTEwbSBkYXRhLiBDb21lcyBhcyB6aXAgZmlsZSBcbnVybCA8LSBcImh0dHA6Ly93d3cubmF0dXJhbGVhcnRoZGF0YS5jb20vaHR0cC8vd3d3Lm5hdHVyYWxlYXJ0aGRhdGEuY29tL2Rvd25sb2FkLzExMG0vcGh5c2ljYWwvbmVfMTEwbV9sYW5kLnppcFwiICMgd2ViIGxvY2F0aW9uXG5cbmxvY2FsRGlyIDwtIFwiLi4vZGF0YVwiXG5cbmlmICghZmlsZS5leGlzdHMobG9jYWxEaXIpKSB7XG4gIGRpci5jcmVhdGUobG9jYWxEaXIpXG59XG5cbmR3bmxkIDwtIHBhc3RlKGxvY2FsRGlyLCBiYXNlbmFtZSh1cmwpLCBzZXAgPSBcIi9cIikgIyB6aXAgZmlsZSBkZXN0aW5hdGlvblxuXG5pZiAoIWZpbGUuZXhpc3RzKGR3bmxkKSkge1xuICBkb3dubG9hZC5maWxlKHVybCA9IHVybCwgZGVzdGZpbGUgPSBkd25sZCwgbWV0aG9kID0gXCJhdXRvXCIpICMgZG93bmxvYWQgZnJvbSB3ZWJcbiAgdW56aXAoZHdubGQsIGV4ZGlyID0gbG9jYWxEaXIpICMgdW56aXBcbn1cblxubGFuZCA8LSByZWFkT0dSKGRzbiA9IGxvY2FsRGlyKSAjIFJlYWQgaW4gc2hhcGVmaWxlIHVzaW5nIGByZ2RhbGAuIE5vIG5lZWQgdG8gc3BlY2lmeSBzaGFwZWZpbGUgbmFtZSBhcyB0aGVyZSdzIG9ubHkgb25lIGluIHRoZSBkaXJlY3Rvcnkgd2UgY3JlYXRlZCBhYm92ZS5cblxucm0odXJsLCBsb2NhbERpciwgZHdubGQpICMgY2xlYW4gdXAgd29ya3NwYWNlXG5gYGAifQ== -->
-<pre class="r"><code>
-# Natural Earth 110m data. Comes as zip file 
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBOYXR1cmFsIEVhcnRoIDExMG0gZGF0YS4gQ29tZXMgYXMgemlwIGZpbGUgXG51cmwgPC0gXCJodHRwOi8vd3d3Lm5hdHVyYWxlYXJ0aGRhdGEuY29tL2h0dHAvL3d3dy5uYXR1cmFsZWFydGhkYXRhLmNvbS9kb3dubG9hZC8xMTBtL3BoeXNpY2FsL25lXzExMG1fbGFuZC56aXBcIiAjIHdlYiBsb2NhdGlvblxubG9jYWxEaXIgPC0gXCIuLi9kYXRhXCJcbmlmICghZmlsZS5leGlzdHMobG9jYWxEaXIpKSB7XG4gIGRpci5jcmVhdGUobG9jYWxEaXIpXG59XG5kd25sZCA8LSBwYXN0ZShsb2NhbERpciwgYmFzZW5hbWUodXJsKSwgc2VwID0gXCIvXCIpICMgemlwIGZpbGUgZGVzdGluYXRpb25cbmlmICghZmlsZS5leGlzdHMoZHdubGQpKSB7XG4gIGRvd25sb2FkLmZpbGUodXJsID0gdXJsLCBkZXN0ZmlsZSA9IGR3bmxkLCBtZXRob2QgPSBcImF1dG9cIikgIyBkb3dubG9hZCBmcm9tIHdlYlxuICB1bnppcChkd25sZCwgZXhkaXIgPSBsb2NhbERpcikgIyB1bnppcFxufVxubGFuZCA8LSByZWFkT0dSKGRzbiA9IGxvY2FsRGlyKSAjIFJlYWQgaW4gc2hhcGVmaWxlIHVzaW5nIGByZ2RhbGAuIE5vIG5lZWQgdG8gc3BlY2lmeSBzaGFwZWZpbGUgbmFtZSBhcyB0aGVyZSdzIG9ubHkgb25lIGluIHRoZSBkaXJlY3Rvcnkgd2UgY3JlYXRlZCBhYm92ZS5cbmBgYCJ9 -->
+<pre class="r"><code># Natural Earth 110m data. Comes as zip file 
 url &lt;- &quot;http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip&quot; # web location
-
 localDir &lt;- &quot;../data&quot;
-
 if (!file.exists(localDir)) {
   dir.create(localDir)
 }
-
 dwnld &lt;- paste(localDir, basename(url), sep = &quot;/&quot;) # zip file destination
-
 if (!file.exists(dwnld)) {
   download.file(url = url, destfile = dwnld, method = &quot;auto&quot;) # download from web
   unzip(dwnld, exdir = localDir) # unzip
 }
-
-land &lt;- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above.
-
-rm(url, localDir, dwnld) # clean up workspace</code></pre>
+land &lt;- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above.</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiT0dSIGRhdGEgc291cmNlIHdpdGggZHJpdmVyOiBFU1JJIFNoYXBlZmlsZSBcblNvdXJjZTogXCIuLi9kYXRhXCIsIGxheWVyOiBcIm5lXzExMG1fbGFuZFwiXG53aXRoIDEyNyBmZWF0dXJlc1xuSXQgaGFzIDIgZmllbGRzXG4ifQ== -->
+<pre><code>OGR data source with driver: ESRI Shapefile 
+Source: &quot;../data&quot;, layer: &quot;ne_110m_land&quot;
+with 127 features
+It has 2 fields</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucm0odXJsLCBsb2NhbERpciwgZHdubGQpICMgY2xlYW4gdXAgd29ya3NwYWNlXG5gYGAifQ== -->
+<pre class="r"><code>rm(url, localDir, dwnld) # clean up workspace</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>Remove land-surface temperatures.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMgTWFzayBDTUlQNSB3aXRoIGxhbmQgc3VyZmFjZSAjI1xuIyBcImNtaXBcIiBpcyBDTUlQNSBuZXRDREYgcmVhZCBpbiBieSByYXN0ZXJcbiMgXCJsYW5kXCIgaXMgdmVjdG9yIHBvbHlnb24gbGFuZCBzdXJmYWNlIGRhdGFzZXRcbmNtaXAubWFzayA8LSBtYXNrKHggPSBjbWlwLCBtYXNrID0gbGFuZCwgaW52ZXJzZSA9IFRSVUUpXG5cbiMjIEdldCBNUEEgY2VsbHMgIyNcbiMgXCJtcGFzLnh5XCIgYXJlIHRoZSBNUEEgbG9uZ2l0dWRlIGFuZCBsYXRpdHVkZSBjb29yZGluYXRlIGRhdGFcbm1wYXMgPC0gU3BhdGlhbFBvaW50cyhtcGFzLnh5KSAjIE1ha2UgTVBBcyBpbnRvIFNwYXRpYWxQb2ludHMgY2xhc3NcblxubXBhLmNlbGxzIDwtIG1hc2soeCA9IGNtaXAsIG1hc2sgPSBtcGFzKVxuXG4jIyBNZXJnZSBsYW5kIG1hc2tlZCBDTUlQNSBhbmQgTVBBIGNlbGxzICMjXG5jbWlwLnNzdCA8LSBtZXJnZShjbWlwLm1hc2ssIG1wYS5jZWxscylcblxucm0oY21pcC5tYXNrKVxuYGBgIn0= -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMgTWFzayBDTUlQNSB3aXRoIGxhbmQgc3VyZmFjZSAjI1xuIyBcImNtaXBcIiBpcyBDTUlQNSBuZXRDREYgcmVhZCBpbiBieSByYXN0ZXJcbiMgXCJsYW5kXCIgaXMgdmVjdG9yIHBvbHlnb24gbGFuZCBzdXJmYWNlIGRhdGFzZXRcbmNtaXAubWFzayA8LSBtYXNrKHggPSBjbWlwLCBtYXNrID0gbGFuZCwgaW52ZXJzZSA9IFRSVUUpXG4jIyBHZXQgTVBBIGNlbGxzICMjXG4jIFwibXBhcy54eVwiIGFyZSB0aGUgTVBBIGxvbmdpdHVkZSBhbmQgbGF0aXR1ZGUgY29vcmRpbmF0ZSBkYXRhXG5tcGFzIDwtIFNwYXRpYWxQb2ludHMobXBhcy54eSkgIyBNYWtlIE1QQXMgaW50byBTcGF0aWFsUG9pbnRzIGNsYXNzXG5tcGEuY2VsbHMgPC0gbWFzayh4ID0gY21pcCwgbWFzayA9IG1wYXMpXG4jIyBNZXJnZSBsYW5kIG1hc2tlZCBDTUlQNSBhbmQgTVBBIGNlbGxzICMjXG5jbWlwLnNzdCA8LSBtZXJnZShjbWlwLm1hc2ssIG1wYS5jZWxscylcbnJtKGNtaXAubWFzaywgbXBhLmNlbGxzKVxuYGBgIn0= -->
 <pre class="r"><code>## Mask CMIP5 with land surface ##
 # &quot;cmip&quot; is CMIP5 netCDF read in by raster
 # &quot;land&quot; is vector polygon land surface dataset
 cmip.mask &lt;- mask(x = cmip, mask = land, inverse = TRUE)
-
 ## Get MPA cells ##
 # &quot;mpas.xy&quot; are the MPA longitude and latitude coordinate data
 mpas &lt;- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
-
 mpa.cells &lt;- mask(x = cmip, mask = mpas)
-
 ## Merge land masked CMIP5 and MPA cells ##
 cmip.sst &lt;- merge(cmip.mask, mpa.cells)
-
-rm(cmip.mask)</code></pre>
+rm(cmip.mask, mpa.cells)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Find mean temperatures</p>
+</div>
+</div>
+<div id="find-mean-temperatures." class="section level2">
+<h2>Find mean temperatures.</h2>
+<p>Define latitudinal zones. We’re just setting Northern hemisphere limits. Mirror image southern hemisphere limits will be derived within the function to calculate zonal means. <code>raster::extract</code> will be used, which selects cells by their centroid from <code>raster::extents</code>. This means we won’t have</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBEYXRhLmZyYW1lIGZvciBvdXRwdXRzXG56b25lcyA8LSBjKFwiZ2xvYmFsXCIsIFwidHJvcGljYWxcIiwgXCJzdWItdHJvcGljYWxcIiwgXCJ0ZW1wZXJhdGVcIiwgXCJwb2xhclwiKVxuem9uZS5tZWFucyA8LSBkYXRhX2ZyYW1lKFxuICB6b25lID0gem9uZXMsIG1lYW5fdmFsdWUgPSBOQVxuKVxuXG4jIEZpbmQgZ2xvYmFsIG1lYW5zXG5cbiMgRmluZCByZWdpb25hbCBtZWFuc1xuIyBMYXRpdHVkaW5hbCB6b25lIGV4dGVudHNcbiMjIExvbmdpdHVkaW5hbCBsaW1pdHNcbmxvbmcubGltcyA8LSBjKC0xODAsIDE4MCkgXG4jIyBUcm9waWNhbFxudHJvcC5leHQgPC0gZXh0ZW50KGMobG9uZy5saW1zLCAtMjMuNSwgMjMuNSkpIFxuIyMgU3ViLXRyb3BpY2FsXG5uc3VidHJvcC5leHQgPC0gZXh0ZW50KGMobG9uZy5saW1zLCAyMy41LCA0MCkpXG5zc3VidHJvcC5leHQgPC0gZXh0ZW50KGMobG9uZy5saW1zLCAtNDAsIC0yMy41KSlcbiMjIFRlbXBlcmF0ZVxubnRlbXAuZXh0IDwtIGV4dGVudChjKGxvbmcubGltcywgNDAsIDY2LjUpKVxuc3RlbXAuZXh0IDwtIGV4dGVudChjKGxvbmcubGltcywgLTY2LjUsIC00MCkpXG4jIyBQb2xhclxubnBvbC5leHQgPC0gZXh0ZW50KGMobG9uZy5saW1zLCA2Ni41LCA5MCkpXG5zcG9sLmV4dCA8LSBleHRlbnQoYyhsb25nLmxpbXMsIC05MCwgLTY2LjUpKVxuXG4jIE1lYW4gcmFzdGVyIHZhbHVlc1xuIyMgR2xvYmFsXG56b25lLm1lYW5zW3doaWNoKHpvbmUubWVhbnMkem9uZT09XCJnbG9iYWxcIiksMl0gPC0gY2VsbFN0YXRzKGNtaXAuc3N0LCBzdGF0ID0gXCJtZWFuXCIsIG5hLnJtID0gVFJVRSlcblxuIyMgVHJvcGljYWxcbnpvbmUubWVhbnNbd2hpY2goem9uZS5tZWFucyR6b25lPT1cInRyb3BpY2FsXCIpLDJdIDwtIGV4dHJhY3QoY21pcC5zc3QsIHRyb3AuZXh0LCBmdW4gPSBtZWFuLCBuYS5ybSA9IFRSVUUpXG5cbiMjIE90aGVyXG4jIyBWaWEgZnVuY3Rpb24gdG8gZ2V0IHRvdGFsIG1lYW5zIGZyb20gcmFzdGVyIGNvbWJpbmVkLCBpbmRlcGVuZGVudCByYXN0ZXIgZXh0ZW50c1xuc291cmNlKFwiLi4vZnVuY3Rpb25zL2V4dGVudC5tZWFucy5SXCIpXG56b25lLm1lYW5zW3doaWNoKHpvbmUubWVhbnMkem9uZT09XCJwb2xhclwiKSwyXSA8LSBleHRlbnQubWVhbnMoY21pcC5zc3QsIGxpc3QobnBvbC5leHQsIHNwb2wuZXh0KSlcbnpvbmUubWVhbnNbd2hpY2goem9uZS5tZWFucyR6b25lPT1cInN1Yi10cm9waWNhbFwiKSwyXSA8LSBleHRlbnQubWVhbnMoY21pcC5zc3QsIGxpc3QobnN1YnRyb3AuZXh0LCBzc3VidHJvcC5leHQpKVxuem9uZS5tZWFuc1t3aGljaCh6b25lLm1lYW5zJHpvbmU9PVwidGVtcGVyYXRlXCIpLDJdIDwtIGV4dGVudC5tZWFucyhjbWlwLnNzdCwgbGlzdChudGVtcC5leHQsIHN0ZW1wLmV4dCkpXG5cbnJtKGxpc3QgPSBscyhwYXR0ZXJuID0gXCIuKmV4dCR8LipsaW1zJFwiKSlcblxuem9uZS5tZWFucyA8LSB6b25lLm1lYW5zICU+JSBtdXRhdGUobWVhbl92YWx1ZSA9IHNpZ25pZihtZWFuX3ZhbHVlLCAyKSlcblxuVmlldyh6b25lLm1lYW5zKVxuYGBgIn0= -->
-<pre class="r"><code># Data.frame for outputs
-zones &lt;- c(&quot;global&quot;, &quot;tropical&quot;, &quot;sub-tropical&quot;, &quot;temperate&quot;, &quot;polar&quot;)
-zone.means &lt;- data_frame(
-  zone = zones, mean_value = NA
-)
-
-# Find global means
-
-# Find regional means
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBGaW5kIGdsb2JhbCBtZWFuc1xuIyBGaW5kIHJlZ2lvbmFsIG1lYW5zLiBcbiMgTGF0aXR1ZGluYWwgem9uZSBleHRlbnRzXG5nbG9iYWwubGltcyA8LSBjKDAsIDkwKVxuIyMgVHJvcGljYWxcbnRyb3AubGltcyA8LSBjKDAsIDIzLjUpXG4jIyBTdWItdHJvcGljYWxcbnN1YnRyb3AubGltcyA8LSBjKDIzLjUsIDQwKSAjIE4gYW5kIFMgc3VidHJvcGljYWwgem9uZSBsaW1pdHMuXG4jIyBUZW1wZXJhdGVcbnRlbXAubGltcyA8LSBjKDQwLCA2Ni41KSAjIE4gYW5kIFMgdGVtcGVyYXRlIHpvbmUgbGltaXRzLlxuIyMgUG9sYXJcbnBvbGFyLmxpbXMgPC0gYyg2Ni41LCA5MCkgIyBOIGFuZCBTIHBvbGFyIHpvbmUgbGltaXRzLlxuIyMgQWxsIGV4dGVudHNcbnpvbmUubGltcyA8LSBsaXN0KGdsb2JhbC5saW1zLCB0cm9wLmxpbXMsIHN1YnRyb3AubGltcywgdGVtcC5saW1zLCBwb2xhci5saW1zKVxuYGBgIn0= -->
+<pre class="r"><code># Find global means
+# Find regional means. 
 # Latitudinal zone extents
-## Longitudinal limits
-long.lims &lt;- c(-180, 180) 
+global.lims &lt;- c(0, 90)
 ## Tropical
-trop.ext &lt;- extent(c(long.lims, -23.5, 23.5)) 
+trop.lims &lt;- c(0, 23.5)
 ## Sub-tropical
-nsubtrop.ext &lt;- extent(c(long.lims, 23.5, 40))
-ssubtrop.ext &lt;- extent(c(long.lims, -40, -23.5))
+subtrop.lims &lt;- c(23.5, 40) # N and S subtropical zone limits.
 ## Temperate
-ntemp.ext &lt;- extent(c(long.lims, 40, 66.5))
-stemp.ext &lt;- extent(c(long.lims, -66.5, -40))
+temp.lims &lt;- c(40, 66.5) # N and S temperate zone limits.
 ## Polar
-npol.ext &lt;- extent(c(long.lims, 66.5, 90))
-spol.ext &lt;- extent(c(long.lims, -90, -66.5))
-
-# Mean raster values
-## Global
-zone.means[which(zone.means$zone==&quot;global&quot;),2] &lt;- cellStats(cmip.sst, stat = &quot;mean&quot;, na.rm = TRUE)
-
-## Tropical
-zone.means[which(zone.means$zone==&quot;tropical&quot;),2] &lt;- extract(cmip.sst, trop.ext, fun = mean, na.rm = TRUE)
-
-## Other
-## Via function to get total means from raster combined, independent raster extents
-source(&quot;../functions/extent.means.R&quot;)
-zone.means[which(zone.means$zone==&quot;polar&quot;),2] &lt;- extent.means(cmip.sst, list(npol.ext, spol.ext))
-zone.means[which(zone.means$zone==&quot;sub-tropical&quot;),2] &lt;- extent.means(cmip.sst, list(nsubtrop.ext, ssubtrop.ext))
-zone.means[which(zone.means$zone==&quot;temperate&quot;),2] &lt;- extent.means(cmip.sst, list(ntemp.ext, stemp.ext))
-
-rm(list = ls(pattern = &quot;.*ext$|.*lims$&quot;))
-
-zone.means &lt;- zone.means %&gt;% mutate(mean_value = signif(mean_value, 2))
-
-View(zone.means)</code></pre>
+polar.lims &lt;- c(66.5, 90) # N and S polar zone limits.
+## All extents
+zone.lims &lt;- list(global.lims, trop.lims, subtrop.lims, temp.lims, polar.lims)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Make data frame to hold zone names, limits and results.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBJbml0aWFsaXNlIGRhdGEgZnJhbWUgZm9yIG91dHB1dHMuIEEgdGliYmxlLlxuem9uZXMgPC0gYyhcImdsb2JhbFwiLCBcInRyb3BpY2FsXCIsIFwic3ViLXRyb3BpY2FsXCIsIFwidGVtcGVyYXRlXCIsIFwicG9sYXJcIilcbnpvbmUubWVhbnMgPC0gZGF0YV9mcmFtZShcbiAgem9uZSA9IHpvbmVzLCBcbiAgbGltaXRzID0gem9uZS5saW1zLFxuICBtZWFucyA9IG51bWVyaWMobGVuZ3RoID0gbGVuZ3RoKHpvbmVzKSksICMgTWVhbiB0ZW1wZXJhdHVyZVxuICBjb3VudCA9IG51bWVyaWMobGVuZ3RoID0gbGVuZ3RoKHpvbmVzKSkgIyAhaXMubmEgY2VsbCBjb3VudCBmb3IgY3Jvc3MtY2hlY2tpbmcgZGF0YSBjYXB0dXJlXG4pXG5ybShsaXN0ID0gbHMocGF0dGVybiA9IFwiLipleHQkfC4qbGltcyRcIikpXG5gYGAifQ== -->
+<pre class="r"><code># Initialise data frame for outputs. A tibble.
+zones &lt;- c(&quot;global&quot;, &quot;tropical&quot;, &quot;sub-tropical&quot;, &quot;temperate&quot;, &quot;polar&quot;)
+zone.means &lt;- data_frame(
+  zone = zones, 
+  limits = zone.lims,
+  means = numeric(length = length(zones)), # Mean temperature
+  count = numeric(length = length(zones)) # !is.na cell count for cross-checking data capture
+)
+rm(list = ls(pattern = &quot;.*ext$|.*lims$&quot;))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Calculate zonal mean temperature values.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBGdW5jdGlvbiB0byBnZXQgcmFzdGVyIG1lYW5zIHdpdGhpbiBleHRlbnRzXG4jIHJhc3RlciA9IHJhc3RlciBvZiB2YWx1ZXNcbiMgem9uZXMgPSBkZiBvZiB6b25lcywgbGltaXRzIGFuZCBlbXB0eSB2YWx1ZXMgY29sdW1uIGZvciBtZWFuXG5zb3VyY2UoXCIuLi9mdW5jdGlvbnMvbXVsdGkuZXh0ZW50Lm1lYW5zLlJcIikgIyBBcHBseWluZyByYXN0ZXI6OmV4dHJhY3Qgb3ZlciB6b25lIGRhdGFmcmFtZVxuem9uZS5tZWFucy5zc3QgPC0gbXVsdGkuZXh0ZW50Lm1lYW5zKGNtaXAuc3N0LCB6b25lLm1lYW5zKVxuem9uZS5tZWFucy5zc3QgIyBTZWEgdGVtcGVyYXR1cmVzXG5gYGAifQ== -->
+<pre class="r"><code># Function to get raster means within extents
+# raster = raster of values
+# zones = df of zones, limits and empty values column for mean
+source(&quot;../functions/multi.extent.means.R&quot;) # Applying raster::extract over zone dataframe
+zone.means.sst &lt;- multi.extent.means(cmip.sst, zone.means)
+zone.means.sst # Sea temperatures</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-frame-begin eyJtZXRhZGF0YSI6eyJjbGFzc2VzIjpbInRibF9kZiIsInRibCIsImRhdGEuZnJhbWUiXSwibmNvbCI6NCwibnJvdyI6NX0sInJkZiI6Ikg0c0lBQUFBQUFBQUExMlN2MHZEUUJUSFgvT2oybUNyVUhEeFg3QVp1amdtUTBjSFVaQ3UxelRXWUpJTHlRVkZGNkdMeFRvNHVyazdGUndjZGF4VEIwRTZWbkQyRDFBYUw4bGRhTzdnY3UvN3VjZjM3cjNjWWFmYjFyb2FBRWdneXhKSU1nMFZpWDRxb0VBdFhTOEE1R1pLNmR5aVUyVWIxWUdMZThobGFwMkVPSENzUW05RWNhOGxzQnF4dmNBT0ViRVpVQVBzb3BBR3pjd1hvSkZkaEEzeitKcUhaYjVYNWx5YkhTaHpwczJEeHpKbld2QlhqWWZSY09kanNqREdQOC8zMi90ejQrNGxQcG85ZlJxanI5bHdYbDBZazhtMG9jZGpubTkrMytZKzA3L015SHk5eXZYN2JyNiszYkFEU2cxVkxSZEZFV3NtaDFvZkVhU2ZoTWl6eFhTZk1wNnVNS2hjWXA4M3NlbzZua01pbnU3WnlDK0VoV09mQ0lhMUVKL3IzTFNlTmlTOVpaSWt2M1JaQ3Nsck9DQU9wb1lnOFgrMGV1MUtLSUROMkUrdCt5M3JOUGJQV3UyMHRHdzdIM1VXcXl1eGtoOHBKeUM4TDlzZk9FV1Zxb3Q2Tm45SURWcENWb0VlaEE0dGtQV1Ewa2dubUJRUFRyT3d5MGxXR3l6L0FSVzBlSDd4QWdBQSJ9 -->
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["zone"],"name":[1],"type":["chr"],"align":["left"]},{"label":["limits"],"name":[2],"type":["list"],"align":["right"]},{"label":["means"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["count"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"global","2":"<dbl [2]>","3":"0.02493863","4":"44120"},{"1":"tropical","2":"<dbl [2]>","3":"0.01412908","4":"13305"},{"1":"sub-tropical","2":"<dbl [2]>","3":"0.01451198","4":"8438"},{"1":"temperate","2":"<dbl [2]>","3":"0.01263965","4":"13400"},{"1":"polar","2":"<dbl [2]>","3":"0.06911904","4":"8977"}],"options":{"columns":{"min":{},"max":[10],"total":[4]},"rows":{"min":[10],"max":[10],"total":[5]},"pages":{}}}
+  </script>
+</div>
+<!-- rnb-frame-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyB6b25lLm1lYW5zLmFsbCAjIFNlYSBhbmQgbGFuZCB0ZW1wZXJhdHVyZXNcbmBgYCJ9 -->
+<pre class="r"><code># zone.means.all # Sea and land temperatures</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Let’s check the cells captured by these limits to make sure there’s no double counting. First, we’ll find the number of non-NA cells in the SST raster globally, and then compare this number against the total of non-NA cells from recombining extracts made from splitting the original raster into zones. If the totals match then the latitudinal limits used develop the regional models don’t overlap - cells aren’t used twice. We would expect this not to be the case as <code>raster::extract</code> selects cells based on the proximity of their centroids within extents used to define sample areas.</p>
+<p>!is.na cells in SST raster globally</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyAhaXMubmEgY2VsbHMgaW4gU1NUIHJhc3RlclxubGVuZ3RoKGdldFZhbHVlcyhjbWlwLnNzdCkpLXN1bW1hcnkoY21pcC5zc3QpWzZdXG5gYGAifQ== -->
+<pre class="r"><code># !is.na cells in SST raster
+length(getValues(cmip.sst))-summary(cmip.sst)[6]</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDQ0MTIwXG4ifQ== -->
+<pre><code>[1] 44120</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Recombined !is.na cells</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtKHpvbmUubWVhbnMuc3N0JGNvdW50Wy0xXSlcbmBgYCJ9 -->
+<pre class="r"><code>sum(zone.means.sst$count[-1])</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDQ0MTIwXG4ifQ== -->
+<pre><code>[1] 44120</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Cell totals from original SST raster and recombined zonal SST extracts both match.</p>
+<!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiTVBBcyBhbmQgY2xpbWF0ZSBjaGFuZ2U6IHJlZ2lvbmFsIHNlYS1zdXJmYWNlIHRlbXBlcmF0dXJlIG1lYW5zIgpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sKYXV0aG9yOiBNYXJrIFJ1ZGR5CmRhdGU6IDIwMTctMDQtMjcKLS0tCgpUYXNrIGlzIHRvIGZpbmQgbWVhbiB0ZW1wZXJhdHVyZSB2YWx1ZXMgZm9yIGxhdGl0dWRpbmFsIHJlZ2lvbnMgb2YgdGhlIGdsb2JlLgoKClBhY2thZ2VzCmBgYHtyfQpsaWJyYXJ5KHJhc3RlcikKbGlicmFyeShuY2RmNCkKbGlicmFyeShyZ2RhbCkKbGlicmFyeShkcGx5cikKbGlicmFyeSh0aWJibGUpCmBgYAoKIyMgUmFzdGVyIHN1bW1hcnkgc3RhdGlzdGljcwoKUmVhZCBpbiBNYXJpbmUgUHJvdGVjdGVkIEFyZWFzCmBgYHtyfQptcGFzLmluIDwtIHJlYWQuY3N2KCIuLi9ubl9leHRyYWN0ZWRBMmMuY3N2IiwgaGVhZGVyID0gVFJVRSkKCm1wYXMueHkgPC0gbXBhcy5pblssMjozXQoKcm0obXBhcy5pbikKYGBgCgpSZWFkIGluIENNSVA1IFJDUDQuNSBtYXgKYGBge3IgZ2V0LWNtaXAtdGVzdH0KCmNtaXAgPC0gIi4uL3RyZW5kX3llYXJtYXhfZW5zZW1ibGVfUkNQNDUubmMiCmNtaXAgPC0gcmFzdGVyKGNtaXApICMgUmVhZCBpbiByYXN0ZXIKbWFwLmV4dGVudCA8LSBjKC0xODAsIDE4MCwgLTkwLCA5MCkgIyBSZXNldCBmb3IgbGF5ZXIsIG9yZ2luYWwgb3JpZW50YXRpb24gd2FzIDAtMzYwIGxvbmdpdHVkZQpleHRlbnQoY21pcCkgPC0gbWFwLmV4dGVudCAjIENoYW5nZSBleHRlbnQKCnNvdXJjZSgiLi4vcmV2cm90YXRlLlIiKSAjIFJvdGF0ZSByYXN0ZXIgbGF5ZXIgdG8gYWxpZ24gd2l0aCBNUEEgcG9pbnRzCmNtaXAgPC0gcmV2cm90YXRlKGNtaXApCmV4dGVudChjbWlwKSA8LSBtYXAuZXh0ZW50CgpybSgibWFwLmV4dGVudCIpCmBgYAoKClJlYWQgaW4gW05hdHVyYWwgRWFydGhdKGh0dHA6Ly93d3cubmF0dXJhbGVhcnRoZGF0YS5jb20vKSAxOjExMG0gd29ybGQgdmVjdG9yLCB0aGVuIGNvbnZlcnQgdG8gc2ltcGxlIHJhc3Rlci4KCmBgYHtyIGdldC1sYW5kLXRlc3R9CgojIE5hdHVyYWwgRWFydGggMTEwbSBkYXRhLiBDb21lcyBhcyB6aXAgZmlsZSAKdXJsIDwtICJodHRwOi8vd3d3Lm5hdHVyYWxlYXJ0aGRhdGEuY29tL2h0dHAvL3d3dy5uYXR1cmFsZWFydGhkYXRhLmNvbS9kb3dubG9hZC8xMTBtL3BoeXNpY2FsL25lXzExMG1fbGFuZC56aXAiICMgd2ViIGxvY2F0aW9uCgpsb2NhbERpciA8LSAiLi4vZGF0YSIKCmlmICghZmlsZS5leGlzdHMobG9jYWxEaXIpKSB7CiAgZGlyLmNyZWF0ZShsb2NhbERpcikKfQoKZHdubGQgPC0gcGFzdGUobG9jYWxEaXIsIGJhc2VuYW1lKHVybCksIHNlcCA9ICIvIikgIyB6aXAgZmlsZSBkZXN0aW5hdGlvbgoKaWYgKCFmaWxlLmV4aXN0cyhkd25sZCkpIHsKICBkb3dubG9hZC5maWxlKHVybCA9IHVybCwgZGVzdGZpbGUgPSBkd25sZCwgbWV0aG9kID0gImF1dG8iKSAjIGRvd25sb2FkIGZyb20gd2ViCiAgdW56aXAoZHdubGQsIGV4ZGlyID0gbG9jYWxEaXIpICMgdW56aXAKfQoKbGFuZCA8LSByZWFkT0dSKGRzbiA9IGxvY2FsRGlyKSAjIFJlYWQgaW4gc2hhcGVmaWxlIHVzaW5nIGByZ2RhbGAuIE5vIG5lZWQgdG8gc3BlY2lmeSBzaGFwZWZpbGUgbmFtZSBhcyB0aGVyZSdzIG9ubHkgb25lIGluIHRoZSBkaXJlY3Rvcnkgd2UgY3JlYXRlZCBhYm92ZS4KCnJtKHVybCwgbG9jYWxEaXIsIGR3bmxkKSAjIGNsZWFuIHVwIHdvcmtzcGFjZQpgYGAKCgpgYGB7ciBjbWlwLXNzdC1vbmx5fQojIyBNYXNrIENNSVA1IHdpdGggbGFuZCBzdXJmYWNlICMjCiMgImNtaXAiIGlzIENNSVA1IG5ldENERiByZWFkIGluIGJ5IHJhc3RlcgojICJsYW5kIiBpcyB2ZWN0b3IgcG9seWdvbiBsYW5kIHN1cmZhY2UgZGF0YXNldApjbWlwLm1hc2sgPC0gbWFzayh4ID0gY21pcCwgbWFzayA9IGxhbmQsIGludmVyc2UgPSBUUlVFKQoKIyMgR2V0IE1QQSBjZWxscyAjIwojICJtcGFzLnh5IiBhcmUgdGhlIE1QQSBsb25naXR1ZGUgYW5kIGxhdGl0dWRlIGNvb3JkaW5hdGUgZGF0YQptcGFzIDwtIFNwYXRpYWxQb2ludHMobXBhcy54eSkgIyBNYWtlIE1QQXMgaW50byBTcGF0aWFsUG9pbnRzIGNsYXNzCgptcGEuY2VsbHMgPC0gbWFzayh4ID0gY21pcCwgbWFzayA9IG1wYXMpCgojIyBNZXJnZSBsYW5kIG1hc2tlZCBDTUlQNSBhbmQgTVBBIGNlbGxzICMjCmNtaXAuc3N0IDwtIG1lcmdlKGNtaXAubWFzaywgbXBhLmNlbGxzKQoKcm0oY21pcC5tYXNrKQpgYGAKCkZpbmQgbWVhbiB0ZW1wZXJhdHVyZXMKYGBge3J9CiMgRGF0YS5mcmFtZSBmb3Igb3V0cHV0cwp6b25lcyA8LSBjKCJnbG9iYWwiLCAidHJvcGljYWwiLCAic3ViLXRyb3BpY2FsIiwgInRlbXBlcmF0ZSIsICJwb2xhciIpCnpvbmUubWVhbnMgPC0gZGF0YV9mcmFtZSgKICB6b25lID0gem9uZXMsIG1lYW5fdmFsdWUgPSBOQQopCgojIEZpbmQgZ2xvYmFsIG1lYW5zCgojIEZpbmQgcmVnaW9uYWwgbWVhbnMKIyBMYXRpdHVkaW5hbCB6b25lIGV4dGVudHMKIyMgTG9uZ2l0dWRpbmFsIGxpbWl0cwpsb25nLmxpbXMgPC0gYygtMTgwLCAxODApIAojIyBUcm9waWNhbAp0cm9wLmV4dCA8LSBleHRlbnQoYyhsb25nLmxpbXMsIC0yMy41LCAyMy41KSkgCiMjIFN1Yi10cm9waWNhbApuc3VidHJvcC5leHQgPC0gZXh0ZW50KGMobG9uZy5saW1zLCAyMy41LCA0MCkpCnNzdWJ0cm9wLmV4dCA8LSBleHRlbnQoYyhsb25nLmxpbXMsIC00MCwgLTIzLjUpKQojIyBUZW1wZXJhdGUKbnRlbXAuZXh0IDwtIGV4dGVudChjKGxvbmcubGltcywgNDAsIDY2LjUpKQpzdGVtcC5leHQgPC0gZXh0ZW50KGMobG9uZy5saW1zLCAtNjYuNSwgLTQwKSkKIyMgUG9sYXIKbnBvbC5leHQgPC0gZXh0ZW50KGMobG9uZy5saW1zLCA2Ni41LCA5MCkpCnNwb2wuZXh0IDwtIGV4dGVudChjKGxvbmcubGltcywgLTkwLCAtNjYuNSkpCgojIE1lYW4gcmFzdGVyIHZhbHVlcwojIyBHbG9iYWwKem9uZS5tZWFuc1t3aGljaCh6b25lLm1lYW5zJHpvbmU9PSJnbG9iYWwiKSwyXSA8LSBjZWxsU3RhdHMoY21pcC5zc3QsIHN0YXQgPSAibWVhbiIsIG5hLnJtID0gVFJVRSkKCiMjIFRyb3BpY2FsCnpvbmUubWVhbnNbd2hpY2goem9uZS5tZWFucyR6b25lPT0idHJvcGljYWwiKSwyXSA8LSBleHRyYWN0KGNtaXAuc3N0LCB0cm9wLmV4dCwgZnVuID0gbWVhbiwgbmEucm0gPSBUUlVFKQoKIyMgT3RoZXIKIyMgVmlhIGZ1bmN0aW9uIHRvIGdldCB0b3RhbCBtZWFucyBmcm9tIHJhc3RlciBjb21iaW5lZCwgaW5kZXBlbmRlbnQgcmFzdGVyIGV4dGVudHMKc291cmNlKCIuLi9mdW5jdGlvbnMvZXh0ZW50Lm1lYW5zLlIiKQp6b25lLm1lYW5zW3doaWNoKHpvbmUubWVhbnMkem9uZT09InBvbGFyIiksMl0gPC0gZXh0ZW50Lm1lYW5zKGNtaXAuc3N0LCBsaXN0KG5wb2wuZXh0LCBzcG9sLmV4dCkpCnpvbmUubWVhbnNbd2hpY2goem9uZS5tZWFucyR6b25lPT0ic3ViLXRyb3BpY2FsIiksMl0gPC0gZXh0ZW50Lm1lYW5zKGNtaXAuc3N0LCBsaXN0KG5zdWJ0cm9wLmV4dCwgc3N1YnRyb3AuZXh0KSkKem9uZS5tZWFuc1t3aGljaCh6b25lLm1lYW5zJHpvbmU9PSJ0ZW1wZXJhdGUiKSwyXSA8LSBleHRlbnQubWVhbnMoY21pcC5zc3QsIGxpc3QobnRlbXAuZXh0LCBzdGVtcC5leHQpKQoKcm0obGlzdCA9IGxzKHBhdHRlcm4gPSAiLipleHQkfC4qbGltcyQiKSkKCnpvbmUubWVhbnMgPC0gem9uZS5tZWFucyAlPiUgbXV0YXRlKG1lYW5fdmFsdWUgPSBzaWduaWYobWVhbl92YWx1ZSwgMikpCgpWaWV3KHpvbmUubWVhbnMpCmBgYAo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiTVBBcyBhbmQgY2xpbWF0ZSBjaGFuZ2U6IHJlZ2lvbmFsIHNlYS1zdXJmYWNlIHRlbXBlcmF0dXJlIG1lYW5zIgpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sKYXV0aG9yOiBNYXJrIFJ1ZGR5CmRhdGU6IDIwMTctMDQtMjcKLS0tCgpUYXNrIGlzIHRvIGZpbmQgbWVhbiB0ZW1wZXJhdHVyZSB2YWx1ZXMgZm9yIGxhdGl0dWRpbmFsIHJlZ2lvbnMgb2YgdGhlIGdsb2JlLgoKClBhY2thZ2VzCmBgYHtyfQpsaWJyYXJ5KHJhc3RlcikKbGlicmFyeShuY2RmNCkKbGlicmFyeShyZ2RhbCkKbGlicmFyeShkcGx5cikKbGlicmFyeSh0aWJibGUpCmBgYAoKIyMgUmFzdGVyIHN1bW1hcnkgc3RhdGlzdGljcwoKIyMjIFJlYWQgaW4gZGF0YXNldHMKClJlYWQgaW4gTWFyaW5lIFByb3RlY3RlZCBBcmVhcwpgYGB7ciBnZXQtbXBhc30KbXBhcy5pbiA8LSByZWFkLmNzdigiLi4vbm5fZXh0cmFjdGVkQTJjLmNzdiIsIGhlYWRlciA9IFRSVUUpCgptcGFzLnh5IDwtIG1wYXMuaW5bLDI6M10KCnJtKG1wYXMuaW4pCmBgYAoKUmVhZCBpbiBDTUlQNSBSQ1A0LjUgbWF4CmBgYHtyIGdldC1jbWlwfQoKY21pcCA8LSAiLi4vdHJlbmRfeWVhcm1heF9lbnNlbWJsZV9SQ1A0NS5uYyIKY21pcCA8LSByYXN0ZXIoY21pcCkgIyBSZWFkIGluIHJhc3RlcgptYXAuZXh0ZW50IDwtIGMoLTE4MCwgMTgwLCAtOTAsIDkwKSAjIFJlc2V0IGZvciBsYXllciwgb3JnaW5hbCBvcmllbnRhdGlvbiB3YXMgMC0zNjAgbG9uZ2l0dWRlCmV4dGVudChjbWlwKSA8LSBtYXAuZXh0ZW50ICMgQ2hhbmdlIGV4dGVudAoKc291cmNlKCIuLi9yZXZyb3RhdGUuUiIpICMgUm90YXRlIHJhc3RlciBsYXllciB0byBhbGlnbiB3aXRoIE1QQSBwb2ludHMKY21pcCA8LSByZXZyb3RhdGUoY21pcCkKZXh0ZW50KGNtaXApIDwtIG1hcC5leHRlbnQKCnJtKCJtYXAuZXh0ZW50IikKYGBgCgoKUmVhZCBpbiBbTmF0dXJhbCBFYXJ0aF0oaHR0cDovL3d3dy5uYXR1cmFsZWFydGhkYXRhLmNvbS8pIDE6MTEwbSB3b3JsZCB2ZWN0b3IsIHRoZW4gY29udmVydCB0byBzaW1wbGUgcmFzdGVyLgoKYGBge3IgZ2V0LWxhbmR9CgojIE5hdHVyYWwgRWFydGggMTEwbSBkYXRhLiBDb21lcyBhcyB6aXAgZmlsZSAKdXJsIDwtICJodHRwOi8vd3d3Lm5hdHVyYWxlYXJ0aGRhdGEuY29tL2h0dHAvL3d3dy5uYXR1cmFsZWFydGhkYXRhLmNvbS9kb3dubG9hZC8xMTBtL3BoeXNpY2FsL25lXzExMG1fbGFuZC56aXAiICMgd2ViIGxvY2F0aW9uCgpsb2NhbERpciA8LSAiLi4vZGF0YSIKCmlmICghZmlsZS5leGlzdHMobG9jYWxEaXIpKSB7CiAgZGlyLmNyZWF0ZShsb2NhbERpcikKfQoKZHdubGQgPC0gcGFzdGUobG9jYWxEaXIsIGJhc2VuYW1lKHVybCksIHNlcCA9ICIvIikgIyB6aXAgZmlsZSBkZXN0aW5hdGlvbgoKaWYgKCFmaWxlLmV4aXN0cyhkd25sZCkpIHsKICBkb3dubG9hZC5maWxlKHVybCA9IHVybCwgZGVzdGZpbGUgPSBkd25sZCwgbWV0aG9kID0gImF1dG8iKSAjIGRvd25sb2FkIGZyb20gd2ViCiAgdW56aXAoZHdubGQsIGV4ZGlyID0gbG9jYWxEaXIpICMgdW56aXAKfQoKbGFuZCA8LSByZWFkT0dSKGRzbiA9IGxvY2FsRGlyKSAjIFJlYWQgaW4gc2hhcGVmaWxlIHVzaW5nIGByZ2RhbGAuIE5vIG5lZWQgdG8gc3BlY2lmeSBzaGFwZWZpbGUgbmFtZSBhcyB0aGVyZSdzIG9ubHkgb25lIGluIHRoZSBkaXJlY3Rvcnkgd2UgY3JlYXRlZCBhYm92ZS4KCnJtKHVybCwgbG9jYWxEaXIsIGR3bmxkKSAjIGNsZWFuIHVwIHdvcmtzcGFjZQpgYGAKClJlbW92ZSBsYW5kLXN1cmZhY2UgdGVtcGVyYXR1cmVzLgpgYGB7ciBjbWlwLXNzdC1vbmx5fQojIyBNYXNrIENNSVA1IHdpdGggbGFuZCBzdXJmYWNlICMjCiMgImNtaXAiIGlzIENNSVA1IG5ldENERiByZWFkIGluIGJ5IHJhc3RlcgojICJsYW5kIiBpcyB2ZWN0b3IgcG9seWdvbiBsYW5kIHN1cmZhY2UgZGF0YXNldApjbWlwLm1hc2sgPC0gbWFzayh4ID0gY21pcCwgbWFzayA9IGxhbmQsIGludmVyc2UgPSBUUlVFKQoKIyMgR2V0IE1QQSBjZWxscyAjIwojICJtcGFzLnh5IiBhcmUgdGhlIE1QQSBsb25naXR1ZGUgYW5kIGxhdGl0dWRlIGNvb3JkaW5hdGUgZGF0YQptcGFzIDwtIFNwYXRpYWxQb2ludHMobXBhcy54eSkgIyBNYWtlIE1QQXMgaW50byBTcGF0aWFsUG9pbnRzIGNsYXNzCgptcGEuY2VsbHMgPC0gbWFzayh4ID0gY21pcCwgbWFzayA9IG1wYXMpCgojIyBNZXJnZSBsYW5kIG1hc2tlZCBDTUlQNSBhbmQgTVBBIGNlbGxzICMjCmNtaXAuc3N0IDwtIG1lcmdlKGNtaXAubWFzaywgbXBhLmNlbGxzKQoKcm0oY21pcC5tYXNrLCBtcGEuY2VsbHMpCmBgYAoKIyMgRmluZCBtZWFuIHRlbXBlcmF0dXJlcy4KCkRlZmluZSBsYXRpdHVkaW5hbCB6b25lcy4gV2UncmUganVzdCBzZXR0aW5nIE5vcnRoZXJuIGhlbWlzcGhlcmUgbGltaXRzLiBNaXJyb3IgaW1hZ2Ugc291dGhlcm4gaGVtaXNwaGVyZSBsaW1pdHMgd2lsbCBiZSBkZXJpdmVkIHdpdGhpbiB0aGUgZnVuY3Rpb24gdG8gY2FsY3VsYXRlIHpvbmFsIG1lYW5zLgpgcmFzdGVyOjpleHRyYWN0YCB3aWxsIGJlIHVzZWQsIHdoaWNoIHNlbGVjdHMgY2VsbHMgYnkgdGhlaXIgY2VudHJvaWQgZnJvbSBgcmFzdGVyOjpleHRlbnRzYC4gVGhpcyBtZWFucyB3ZSB3b24ndCBoYXZlIAoKYGBge3IgZGVmaW5lLXpvbmVzfQojIEZpbmQgZ2xvYmFsIG1lYW5zCgojIEZpbmQgcmVnaW9uYWwgbWVhbnMuIAojIExhdGl0dWRpbmFsIHpvbmUgZXh0ZW50cwoKZ2xvYmFsLmxpbXMgPC0gYygwLCA5MCkKCiMjIFRyb3BpY2FsCnRyb3AubGltcyA8LSBjKDAsIDIzLjUpCgojIyBTdWItdHJvcGljYWwKc3VidHJvcC5saW1zIDwtIGMoMjMuNSwgNDApICMgTiBhbmQgUyBzdWJ0cm9waWNhbCB6b25lIGxpbWl0cy4KCiMjIFRlbXBlcmF0ZQp0ZW1wLmxpbXMgPC0gYyg0MCwgNjYuNSkgIyBOIGFuZCBTIHRlbXBlcmF0ZSB6b25lIGxpbWl0cy4KCiMjIFBvbGFyCnBvbGFyLmxpbXMgPC0gYyg2Ni41LCA5MCkgIyBOIGFuZCBTIHBvbGFyIHpvbmUgbGltaXRzLgoKIyMgQWxsIGV4dGVudHMKem9uZS5saW1zIDwtIGxpc3QoZ2xvYmFsLmxpbXMsIHRyb3AubGltcywgc3VidHJvcC5saW1zLCB0ZW1wLmxpbXMsIHBvbGFyLmxpbXMpCmBgYAoKTWFrZSBkYXRhIGZyYW1lIHRvIGhvbGQgem9uZSBuYW1lcywgbGltaXRzIGFuZCByZXN1bHRzLgpgYGB7ciB6b25lcy1kZn0KIyBJbml0aWFsaXNlIGRhdGEgZnJhbWUgZm9yIG91dHB1dHMuIEEgdGliYmxlLgp6b25lcyA8LSBjKCJnbG9iYWwiLCAidHJvcGljYWwiLCAic3ViLXRyb3BpY2FsIiwgInRlbXBlcmF0ZSIsICJwb2xhciIpCgp6b25lLm1lYW5zIDwtIGRhdGFfZnJhbWUoCiAgem9uZSA9IHpvbmVzLCAKICBsaW1pdHMgPSB6b25lLmxpbXMsCiAgbWVhbnMgPSBudW1lcmljKGxlbmd0aCA9IGxlbmd0aCh6b25lcykpLCAjIE1lYW4gdGVtcGVyYXR1cmUKICBjb3VudCA9IG51bWVyaWMobGVuZ3RoID0gbGVuZ3RoKHpvbmVzKSkgIyAhaXMubmEgY2VsbCBjb3VudCBmb3IgY3Jvc3MtY2hlY2tpbmcgZGF0YSBjYXB0dXJlCikKCnJtKGxpc3QgPSBscyhwYXR0ZXJuID0gIi4qZXh0JHwuKmxpbXMkIikpCmBgYAoKCgpDYWxjdWxhdGUgem9uYWwgbWVhbiB0ZW1wZXJhdHVyZSB2YWx1ZXMuCmBgYHtyIH0KIyBGdW5jdGlvbiB0byBnZXQgcmFzdGVyIG1lYW5zIHdpdGhpbiBleHRlbnRzCiMgcmFzdGVyID0gcmFzdGVyIG9mIHZhbHVlcwojIHpvbmVzID0gZGYgb2Ygem9uZXMsIGxpbWl0cyBhbmQgZW1wdHkgdmFsdWVzIGNvbHVtbiBmb3IgbWVhbgoKc291cmNlKCIuLi9mdW5jdGlvbnMvbXVsdGkuZXh0ZW50Lm1lYW5zLlIiKSAjIEFwcGx5aW5nIHJhc3Rlcjo6ZXh0cmFjdCBvdmVyIHpvbmUgZGF0YWZyYW1lCgp6b25lLm1lYW5zLnNzdCA8LSBtdWx0aS5leHRlbnQubWVhbnMoY21pcC5zc3QsIHpvbmUubWVhbnMpCgp6b25lLm1lYW5zLnNzdCAjIFNlYSB0ZW1wZXJhdHVyZXMKIyB6b25lLm1lYW5zLmFsbCAjIFNlYSBhbmQgbGFuZCB0ZW1wZXJhdHVyZXMKYGBgCgpMZXQncyBjaGVjayB0aGUgY2VsbHMgY2FwdHVyZWQgYnkgdGhlc2UgbGltaXRzIHRvIG1ha2Ugc3VyZSB0aGVyZSdzIG5vIGRvdWJsZSBjb3VudGluZy4gRmlyc3QsIHdlJ2xsIGZpbmQgdGhlIG51bWJlciBvZiBub24tTkEgY2VsbHMgaW4gdGhlIFNTVCByYXN0ZXIgZ2xvYmFsbHksIGFuZCB0aGVuIGNvbXBhcmUgdGhpcyBudW1iZXIgYWdhaW5zdCB0aGUgdG90YWwgb2Ygbm9uLU5BIGNlbGxzIGZyb20gcmVjb21iaW5pbmcgZXh0cmFjdHMgbWFkZSBmcm9tIHNwbGl0dGluZyB0aGUgb3JpZ2luYWwgcmFzdGVyIGludG8gem9uZXMuIElmIHRoZSB0b3RhbHMgbWF0Y2ggdGhlbiB0aGUgbGF0aXR1ZGluYWwgbGltaXRzIHVzZWQgZGV2ZWxvcCB0aGUgcmVnaW9uYWwgbW9kZWxzIGRvbid0IG92ZXJsYXAgLSBjZWxscyBhcmVuJ3QgdXNlZCB0d2ljZS4gV2Ugd291bGQgZXhwZWN0IHRoaXMgbm90IHRvIGJlIHRoZSBjYXNlIGFzIGByYXN0ZXI6OmV4dHJhY3RgIHNlbGVjdHMgY2VsbHMgYmFzZWQgb24gdGhlIHByb3hpbWl0eSBvZiB0aGVpciBjZW50cm9pZHMgd2l0aGluIGV4dGVudHMgdXNlZCB0byBkZWZpbmUgc2FtcGxlIGFyZWFzLgoKIWlzLm5hIGNlbGxzIGluIFNTVCByYXN0ZXIgZ2xvYmFsbHkKYGBge3J9CiMgIWlzLm5hIGNlbGxzIGluIFNTVCByYXN0ZXIKbGVuZ3RoKGdldFZhbHVlcyhjbWlwLnNzdCkpLXN1bW1hcnkoY21pcC5zc3QpWzZdCmBgYAoKUmVjb21iaW5lZCAhaXMubmEgY2VsbHMKYGBge3J9CnN1bSh6b25lLm1lYW5zLnNzdCRjb3VudFstMV0pCmBgYAoKQ2VsbCB0b3RhbHMgZnJvbSBvcmlnaW5hbCBTU1QgcmFzdGVyIGFuZCByZWNvbWJpbmVkIHpvbmFsIFNTVCBleHRyYWN0cyBib3RoIG1hdGNoLiAKCgoKCgo=</div>
 
 
 
