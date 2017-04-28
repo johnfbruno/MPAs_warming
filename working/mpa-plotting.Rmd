@@ -205,7 +205,7 @@ p.world <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `raster
   geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
   guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
   theme(legend.title = element_text(size = 9)) +
-  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  ggtitle("RCP 8.5 warming rate for mean SST") +
   xlab("Longitude") +
   ylab("Latitude") +
   scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
@@ -257,33 +257,13 @@ The guide_colorbar is not re-sizing within the grid. I'll try the suggestion giv
 
 ### Panel plot with separate legend
 
-
-```{r}
-# Map with no legend
-p.world_l <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
-  geom_raster(aes(fill = value)) +
-  scale_fill_viridis(direction = -1, option = "plasma", guide = "none") +
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) +
-  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
-  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
-  # theme(plot.margin = margin(5, 15, 5, 5)) + # Removing guide trimmed right margin to y-axis label. Tgis plot.margin statement restores space.
-  ggtitle("RCP 8.5 warming rate for mean SST") + 
-  xlab("Longitude") +
-  ylab("Latitude") +
-  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
-  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
-  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
-
-p.world_l
-```
-
-
+Test 1
 ```{r}
   
 # source("../functions/share_guide.R")
 
 plots <- c("p.world", "p.world", "p.world", "p.world")
-position <- "right"
+position <- c("bottom", "right")
 ncol <- 1
 nrow <- 2
 position <- match.arg(position)
@@ -304,13 +284,82 @@ arrangeGrob(do.call(arrangeGrob, gl), legend, ncol = 2, widths = unit.c(unit(1, 
 
 ```
 
+Test 2
+```{r}
+source("../functions/share_guide.R")
+
+grid_arrange_shared_guide("p.world", "p.world", "p.world", )
+```
+
+Test 3
+
+Plot world.
+```{r}
+p <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+
+p
+```
 
 ```{r}
-library(cowplot)
+library(ggplot2)
+library(gridExtra)
+
+# p <- ggplot(data.frame(x=1, y=1), aes(x,y)) + geom_point()
+
+# g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+
+p_l <- p + theme(legend.position="none")
+g <- ggplotGrob(p + theme(legend.position = position))$grobs
+
+
+grid.arrange(
+  arrangeGrob(p_l, ncol = 1, widths = c(3)),
+  arrangeGrob(p_l, p_l, p_l, ncol = 3, widths = rep(1,3)),
+  nrow=2)
+
 
 
 
 ```
+
+
+`gridExtra::grid.arrange` method
+```{r}
+gl <- lapply(1:5, function(ii) grobTree(rectGrob(),textGrob(ii)))
+
+grid.arrange(
+  arrangeGrob(gl[[1]],
+              do.call(arrangeGrob, c(gl[2:4], ncol=3, list(widths=c(1,1,1)))),
+          nrow=2, heights=c(2,1)), gl[[5]], nrow=1, widths=c(7,1))
+
+```
+
+`gridExtra::grid.arrange` gives us the arrangement we want; with 1:4 plots on the left and a single guide on the right.
+
+Plot with ggplot grobs (graphical objects)
+```{r}
+p_l <- p + theme(legend.position="none") # plot p from above
+g <- ggplotGrob(p + theme(legend.position = "right"))$grobs
+legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+
+grid.arrange(
+  arrangeGrob(p_l,
+              do.call(arrangeGrob, c(list(p_l, p_l, p_l), ncol=3, list(widths=c(1,1,1)))),
+          nrow=2, heights=c(2,1)), legend, nrow=1, widths=c(7,1))
+```
+
+
 
 
 
