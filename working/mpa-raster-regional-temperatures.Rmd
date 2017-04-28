@@ -1,6 +1,8 @@
 ---
 title: "MPAs and climate change: regional sea-surface temperature means"
-output: html_notebook
+output:
+  html_document:
+    theme: readable
 author: Mark Ruddy
 date: 2017-04-27
 ---
@@ -8,7 +10,7 @@ date: 2017-04-27
 Task is to find mean temperature values for latitudinal regions of the globe.
 
 
-Packages
+Packages.
 ```{r}
 library(raster)
 library(ncdf4)
