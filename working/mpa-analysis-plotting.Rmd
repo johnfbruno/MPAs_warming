@@ -393,7 +393,6 @@ mp <- grid.arrange(
               do.call(arrangeGrob, c(plist[2:4], ncol=3, list(widths=c(1,1,1)))),
           nrow=2, heights=c(5,3)), legend, nrow=1, widths=c(8,1))
 
-
 ggsave(filename = "multi-plot", plot = mp, path = "../images/", device = "pdf", units = "in", width = 12, height = 10)
 
 rm(plist, g, mp, legend)
