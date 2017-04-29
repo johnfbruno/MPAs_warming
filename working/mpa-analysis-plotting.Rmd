@@ -1,8 +1,9 @@
 ---
 title: "MPAs and climate change: analysis and plotting"
 author: "Mark Ruddy"
-date: "29 April 2017"
-output: html_document
+date: 2017-04-29
+  html_document:
+    theme: readable
 ---
 
 ## Task summary
@@ -12,7 +13,8 @@ The project aims to look at projected climate warming in Marine Protected Areas.
 As part of the study, modelled temperature data need to be modified to exclude land-based temperature measures. Additionally, adequate output maps need to be created.
 
 1. Code that removes the land surface temperatures from the CMIP5 surface temperature rasters.
-2. Plots of SST with land surface removed (white or black) and a pleasing SST key.
+2. Calculate mean temperature changes for specific geographic zones.
+3. Plots of SST with land surface removed (white or black) and a pleasing SST key.
 
 
 ## Setup
@@ -20,18 +22,19 @@ As part of the study, modelled temperature data need to be modified to exclude l
 ```{r}
 # Packages
 library(dplyr) # Data wrangling and exploration
-library(ggplot2) # Plotting
 library(tidyr) # Data wrangling
+library(ggplot2) # Plotting
+library(viridis) # Perceptually sound palettes
+library(gridExtra) # Grid arranged graphics
+library(grid) # Grid arrangement
 library(raster) # Dealing with rasters
 library(rasterVis) # Dealing with rasters
-library(viridis) # Perceptually sound palettes
 library(sp) # Classes and methods for spatial data
 library(ncdf4) # Required - viewing and working with climate data in netCDF format
 library(rgdal) # For working with shapefiles
 ```
 
-
-## Data preparation: land surface temperature removal
+## Land surface temperature removal
 
 ### Approach
 
@@ -40,7 +43,7 @@ The approach I'll take is to select cells from the CMIP5 grid that fall *wholly*
 
 Summary of process in dummy code:
 
-```{r}
+#```{r}
 ######################################
 ### NOT IMPLEMENTED - DUMMY CODE ###
 ## Mask CMIP5 with land surface ##
@@ -57,7 +60,7 @@ mpa.cells <- mask(x = cmip, mask = mpas)
 cmip.sst <- merge(cmip.mask, mpa.cells)
 
 ######################################
-```
+#```
 
 
 ### Read-in data
@@ -145,12 +148,89 @@ rm(mpa.check)
 Should have 0 cells having temperature data intersecting with MPA locations.
 
 
+## Mean temperature of geographic zones
+
+Define latitudinal zones. We're just setting Northern hemisphere limits. Mirror image southern hemisphere limits will be derived within the function to calculate zonal means.
+`raster::extract` will be used, which selects cells by their centroid from `raster::extents`. This means we won't have 
+
+```{r define-zones}
+# Find global means
+
+# Find regional means. 
+# Latitudinal zone extents
+
+global.lims <- c(0, 90)
+
+## Tropical
+trop.lims <- c(0, 23.5)
+
+## Sub-tropical
+subtrop.lims <- c(23.5, 40) # N and S subtropical zone limits.
+
+## Temperate
+temp.lims <- c(40, 66.5) # N and S temperate zone limits.
+
+## Polar
+polar.lims <- c(66.5, 90) # N and S polar zone limits.
+
+## All extents
+zone.lims <- list(global.lims, trop.lims, subtrop.lims, temp.lims, polar.lims)
+```
+
+Make data frame to hold zone names, limits and results.
+```{r zones-df}
+# Initialise data frame for outputs. A tibble.
+zones <- c("global", "tropical", "sub-tropical", "temperate", "polar")
+
+zone.means <- data_frame(
+  zone = zones, 
+  limits = zone.lims,
+  means = numeric(length = length(zones)), # Mean temperature
+  count = numeric(length = length(zones)) # !is.na cell count for cross-checking data capture
+)
+
+rm(list = ls(pattern = ".*ext$|.*lims$"))
+```
+
+
+Calculate zonal mean temperature values.
+```{r }
+# Function to get raster means within extents
+# raster = raster of values
+# zones = df of zones, limits and empty values column for mean
+
+source("../functions/multi.extent.means.R") # Applying raster::extract over zone dataframe
+
+zone.means.sst <- multi.extent.means(cmip.sst, zone.means)
+
+zone.means.sst # Sea temperatures
+# zone.means.all # Sea and land temperatures
+
+rm(zones, zone.means, multi.extent.means)
+```
+
+Let's check the cells captured by these limits to make sure there's no double counting. First, we'll find the number of non-NA cells in the SST raster globally, and then compare this number against the total of non-NA cells from recombining extracts made from splitting the original raster into zones. If the totals match then the latitudinal limits used develop the regional models don't overlap - cells aren't used twice. We would expect this not to be the case as `raster::extract` selects cells based on the proximity of their centroids within extents used to define sample areas.
+
+!is.na cells in SST raster globally
+```{r}
+# !is.na cells in SST raster
+length(getValues(cmip.sst))-summary(cmip.sst)[6]
+```
+
+Recombined !is.na cells
+```{r}
+sum(zone.means.sst$count[-1])
+```
+
+Cell totals from original SST raster and recombined zonal SST extracts should both match. 
+
+
 ## Plotting
 
 Aim is to produce plot of CMIP raster, MPAs and land surface for four areas:
 
 1. Global
-2. The Antarctic peninsula
+2. The Antarctic peninsula/Tierra del Fuego
 3. North Australia, East Indies, Polynesia
 4. 
 
@@ -187,11 +267,11 @@ p.wc <- gplot(cmip) +
   labs(title = "a") +
   xlab("") +
   ylab("") +
-  scale_y_continuous(limits = crop.lim[3:4] , breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_y_continuous(limits = crop.lim[3:4] , breaks = seq(-80, 80, 20), expand = c(0,0)) +
   scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 
-ggsave(filename = "worldtest", plot =  p.wc, device = pdf, path = "../images", width = 13, height = 8, units = "in")
+# ggsave(filename = "worldtest", plot =  p.wc, device = pdf, path = "../images", width = 13, height = 8, units = "in")
 ```
 
 
