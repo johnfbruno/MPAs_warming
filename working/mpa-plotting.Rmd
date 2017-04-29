@@ -371,6 +371,7 @@ ggsave(filename = "multi-plot", plot = mp, path = "../images/", device = "pdf", 
 
 The world plot above contains some redundant areas near both poles. Antartica and the Arctic are warped to a large size and the poles don't contain any MPAs. We can trim these areas down to maximise the space avaiable for the rest of the globe. Something like crop at 80 degrees latitude seems appropriate. This is just for plotting, not for analysis.
 
+Only need to crop the shape file as `ggplot2` tries to join up the wrong polygon vertices in plots that merely limit axes.
 ```{r crop-plot-data}
 # Crop raster and world land shapefile for better use of whole map space in plot.
 # Using `raster::extract`

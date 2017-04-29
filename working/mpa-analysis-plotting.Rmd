@@ -43,24 +43,23 @@ The approach I'll take is to select cells from the CMIP5 grid that fall *wholly*
 
 Summary of process in dummy code:
 
-#```{r}
-######################################
-### NOT IMPLEMENTED - DUMMY CODE ###
-## Mask CMIP5 with land surface ##
-# "cmip" is CMIP5 netCDF read in by raster
-# "land" is vector polygon land surface dataset
-cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
-
-## Get MPA cells ##
-# "mpas.xy" are the MPA longitude and latitude coordinate data
-mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
-mpa.cells <- mask(x = cmip, mask = mpas)
-
-## Merge land masked CMIP5 and MPA cells ##
-cmip.sst <- merge(cmip.mask, mpa.cells)
 
 ######################################
-#```
+ NOT IMPLEMENTED - DUMMY CODE ###
+ Mask CMIP5 with land surface ##
+ "cmip" is CMIP5 netCDF read in by raster
+ "land" is vector polygon land surface dataset
+/> cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
+
+ Get MPA cells ##
+ "mpas.xy" are the MPA longitude and latitude coordinate data
+/> mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
+/> mpa.cells <- mask(x = cmip, mask = mpas)
+
+ Merge land masked CMIP5 and MPA cells ##
+/> cmip.sst <- merge(cmip.mask, mpa.cells)
+######################################
+
 
 
 ### Read-in data
@@ -206,7 +205,7 @@ zone.means.sst <- multi.extent.means(cmip.sst, zone.means)
 zone.means.sst # Sea temperatures
 # zone.means.all # Sea and land temperatures
 
-rm(zones, zone.means, multi.extent.means)
+rm(zones, zone.means, multi.extent.means, extent.mean)
 ```
 
 Let's check the cells captured by these limits to make sure there's no double counting. First, we'll find the number of non-NA cells in the SST raster globally, and then compare this number against the total of non-NA cells from recombining extracts made from splitting the original raster into zones. If the totals match then the latitudinal limits used develop the regional models don't overlap - cells aren't used twice. We would expect this not to be the case as `raster::extract` selects cells based on the proximity of their centroids within extents used to define sample areas.
@@ -230,40 +229,33 @@ Cell totals from original SST raster and recombined zonal SST extracts should bo
 Aim is to produce plot of CMIP raster, MPAs and land surface for four areas:
 
 1. Global
-2. The Antarctic peninsula/Tierra del Fuego
-3. North Australia, East Indies, Polynesia
-4. 
+2. The Antarctic peninsula/southern South America
+3. Australia, East Indies, Polynesia
+4. Europe
 
 
 The world plot above contains some redundant areas near both poles. Antartica and the Arctic are warped to a large size and the poles don't contain any MPAs. We can trim these areas down to maximise the space avaiable for the rest of the globe. Something like crop at 80 degrees latitude seems appropriate. This is just for plotting, not for analysis.
 
-```{r crop-plot-data}
-# Crop raster and world land shapefile for better use of whole map space in plot.
-# Using `raster::extract`
+### Global plot
+```{r}
+##############
+# Crop world land shapefile for better use of whole map space in plot using `raster::extract`
 ## Limits
 crop.lim <- c(-180, 180, -82, 84) # Crop at 80 deg latitude
 
-## Raster
-# crop.r <- crop(cmip.sst, crop.e)
-
-## World land
+## Crop land
 crop.land <- crop(land, extent(crop.lim))
-
 crop.land.gg <- fortify(crop.land) # Understandable by ggplot 
+##############
 
-rm(crop.land)
-```
-
-Cropped world plot
-```{r}
-p.wc <- gplot(cmip) + 
+p.wld <- gplot(cmip) + 
   # Note1: plotting raster uses `rasterVis::gplot` here not `ggplot`.
   # Note2: plot uses original cmip dataset without land-surface temperatures removed for aesthetic reasons - would otherwise show empty NA cells at some land margins.
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
   geom_polygon(data = crop.land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
   geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 30, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
   labs(title = "a") +
   xlab("") +
   ylab("") +
@@ -271,8 +263,99 @@ p.wc <- gplot(cmip) +
   scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 
-# ggsave(filename = "worldtest", plot =  p.wc, device = pdf, path = "../images", width = 13, height = 8, units = "in")
+ggsave(filename = "globe", plot =  p.wld, device = pdf, path = "../images", width = 13, height = 8, units = "in")
+rm(lims)
 ```
+
+### Antartic plot.
+```{r}
+##############
+# Crop world land shapefile using `raster::extract`
+## Limits
+lims <- c(-90, -25, -80, -25) # Antarctic peninsula/southern South America
+
+# Use `mapdata::world` land data here rather the more generalised Natural Earth .shp
+world <- map_data(map = "world", interior = FALSE)
+
+p.ant <- gplot(cmip) + 
+  # Note1: plotting raster uses `rasterVis::gplot` here not `ggplot`.
+  # Note2: plot uses original cmip dataset without land-surface temperatures removed for aesthetic reasons - would otherwise show empty NA cells at some land margins.
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
+  geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
+  geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  labs(title = "b") +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(limits = lims[3:4] , expand = c(-0.05, 0)) +
+  scale_x_continuous(limits = lims[1:2], expand = c(-0.05,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+p.ant
+ggsave(filename = "ant", plot =  p.ant, device = pdf, path = "../images", width = 8, height = 8, units = "in")
+rm(p.ant, world, lims)
+```
+
+### Australia/East Indies plot.
+```{r}
+##############
+# Crop world land shapefile using `raster::extract`
+## Limits
+lims <- c(100, 160, -50, 10) # Australia, East Indies, Polynesia
+
+# Use `mapdata::world` land data here rather the more generalised Natural Earth .shp
+world <- map_data(map = "world", interior = FALSE)
+
+p.aus <- gplot(cmip) + 
+  # Note1: plotting raster uses `rasterVis::gplot` here not `ggplot`.
+  # Note2: plot uses original cmip dataset without land-surface temperatures removed for aesthetic reasons - would otherwise show empty NA cells at some land margins.
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
+  geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
+  geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  labs(title = "c") +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(limits = lims[3:4] , expand = c(-0.05, 0)) +
+  scale_x_continuous(limits = lims[1:2], expand = c(-0.05,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+p.aus
+ggsave(filename = "aus", plot =  p.aus, device = pdf, path = "../images", width = 8, height = 8, units = "in")
+rm(p.aus, world, lims)
+```
+
+
+### Europe plot.
+```{r}
+##############
+# Crop world land shapefile using `raster::extract`
+## Limits
+lims <- c(-25, 30, 30, 80) # Europe
+
+# Use `mapdata::world` land data here rather the more generalised Natural Earth .shp
+world <- map_data(map = "world", interior = FALSE)
+
+p.eur <- gplot(cmip) + 
+  # Note1: plotting raster uses `rasterVis::gplot` here not `ggplot`.
+  # Note2: plot uses original cmip dataset without land-surface temperatures removed for aesthetic reasons - would otherwise show empty NA cells at some land margins.
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
+  geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
+  geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  labs(title = "d") +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(limits = lims[3:4] , expand = c(-0.05, 0)) +
+  scale_x_continuous(limits = lims[1:2], expand = c(-0.05,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+p.eur
+ggsave(filename = "eur", plot =  p.eur, device = pdf, path = "../images", width = 8, height = 8, units = "in")
+rm(p.eur, world, lims)
+```
+
+
 
 
 
