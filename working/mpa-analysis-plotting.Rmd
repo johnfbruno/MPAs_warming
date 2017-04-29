@@ -1,7 +1,8 @@
 ---
 title: "MPAs and climate change: analysis and plotting"
 author: "Mark Ruddy"
-date: 2017-04-29
+date: "2017-04-29"
+output:
   html_document:
     theme: readable
 ---
@@ -19,7 +20,7 @@ As part of the study, modelled temperature data need to be modified to exclude l
 
 ## Setup
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # Packages
 library(dplyr) # Data wrangling and exploration
 library(tidyr) # Data wrangling
@@ -45,21 +46,30 @@ Summary of process in dummy code:
 
 
 ######################################
- NOT IMPLEMENTED - DUMMY CODE ###
- Mask CMIP5 with land surface ##
+
+ NOT IMPLEMENTED - DUMMY CODE
+ 
+ Mask CMIP5 with land surface
+ 
  "cmip" is CMIP5 netCDF read in by raster
+ 
  "land" is vector polygon land surface dataset
+
 /> cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
 
- Get MPA cells ##
+ Get MPA cells
+ 
  "mpas.xy" are the MPA longitude and latitude coordinate data
+ 
 /> mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
+
 /> mpa.cells <- mask(x = cmip, mask = mpas)
 
- Merge land masked CMIP5 and MPA cells ##
+ Merge land masked CMIP5 and MPA cells
+ 
 /> cmip.sst <- merge(cmip.mask, mpa.cells)
-######################################
 
+######################################
 
 
 ### Read-in data
@@ -150,7 +160,7 @@ Should have 0 cells having temperature data intersecting with MPA locations.
 ## Mean temperature of geographic zones
 
 Define latitudinal zones. We're just setting Northern hemisphere limits. Mirror image southern hemisphere limits will be derived within the function to calculate zonal means.
-`raster::extract` will be used, which selects cells by their centroid from `raster::extents`. This means we won't have 
+`raster::extract` will be used, which selects cells by their centroid from `raster::extents`. This means we shouldn't have duplicated cells contributing to different zones.
 
 ```{r define-zones}
 # Find global means
@@ -221,7 +231,7 @@ Recombined !is.na cells
 sum(zone.means.sst$count[-1])
 ```
 
-Cell totals from original SST raster and recombined zonal SST extracts should both match. 
+Cell totals from original SST raster and recombined zonal SST extracts match. 
 
 
 ## Plotting
@@ -234,9 +244,9 @@ Aim is to produce plot of CMIP raster, MPAs and land surface for four areas:
 4. Europe
 
 
-The world plot above contains some redundant areas near both poles. Antartica and the Arctic are warped to a large size and the poles don't contain any MPAs. We can trim these areas down to maximise the space avaiable for the rest of the globe. Something like crop at 80 degrees latitude seems appropriate. This is just for plotting, not for analysis.
+The world plot contains some redundant areas near both poles - Antarctica and the Arctic are warped to a large size and the poles don't contain any MPAs. We can trim these areas down to maximise the space avaiable for the rest of the globe. Something like crop at 80 degrees latitude seems appropriate. This is just for plotting, not for analysis.
 
-Set some plot parameters for ease of use.
+Set some plot parameters for ease of use across all plots.
 
 ```{r}
 # Size of axis text and guide bar text
@@ -244,14 +254,12 @@ axis_guide_text <- element_text(size = 12)
 ```
 
 
-
-
 ### Global plot
-```{r}
+```{r global-plot, warning=FALSE}
 ##############
 # Crop world land shapefile for better use of whole map space in plot using `raster::extract`
-## Limits
-crop.lim <- c(-180, 180, -82, 84) # Crop at 80 deg latitude
+## Crop limits
+crop.lim <- c(-180, 180, -82, 84)
 
 ## Crop land
 crop.land <- crop(land, extent(crop.lim))
@@ -274,13 +282,15 @@ p.wld <- gplot(cmip) +
   scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 
+p.wld
+
 ggsave(filename = "globe", plot =  p.wld, device = pdf, path = "../images", width = 13, height = 8, units = "in")
 
 rm(lims, list = ls(patter = "^crop.*"))
 ```
 
-### Antartic plot.
-```{r}
+### Antarctic plot.
+```{r antarctic-plot, warning=FALSE}
 ##############
 # Crop world land shapefile using `raster::extract`
 ## Limits
@@ -301,7 +311,8 @@ p.ant <- gplot(cmip) +
   labs(title = "b") +
   xlab("") +
   ylab("") +
-  scale_y_continuous(limits = lims[3:4] , expand = c(-0.05, 0)) +
+  # Had to hack `expand` within scale_... ? why not expanding data to plot edge with expand = c(0, 0)
+  scale_y_continuous(limits = lims[3:4] , expand = c(-0.05, 0)) + 
   scale_x_continuous(limits = lims[1:2], expand = c(-0.05,0)) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 p.ant
@@ -310,7 +321,7 @@ rm(world, lims)
 ```
 
 ### Australia/East Indies plot.
-```{r}
+```{r australia-plot, warning=FALSE}
 ##############
 # Crop world land shapefile using `raster::extract`
 ## Limits
@@ -331,6 +342,7 @@ p.aus <- gplot(cmip) +
   labs(title = "c") +
   xlab("") +
   ylab("") +
+  # Had to hack `expand` within scale_... ? why not expanding data to plot edge with expand = c(0, 0)
   scale_y_continuous(limits = lims[3:4] , expand = c(-0.05, 0)) +
   scale_x_continuous(limits = lims[1:2], expand = c(-0.05,0)) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
@@ -341,7 +353,7 @@ rm(world, lims)
 
 
 ### Europe plot.
-```{r}
+```{r europe-plot, warning=FALSE}
 ##############
 # Crop world land shapefile using `raster::extract`
 ## Limits
@@ -362,6 +374,7 @@ p.eur <- gplot(cmip) +
   labs(title = "d") +
   xlab("") +
   ylab("") +
+  # Had to hack `expand` within scale_... ? why not expanding data to plot edge with expand = c(0, 0)
   scale_y_continuous(limits = lims[3:4] , expand = c(-0.02, 0)) +
   scale_x_continuous(limits = lims[1:2], expand = c(-0.03,0)) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
@@ -376,7 +389,7 @@ rm(world, lims)
 `gridExtra::grid.arrange` gives us the arrangement we want; with 1:4 plots on the left and a single guide on the right.
 
 Plot with ggplot grobs (graphical objects)
-```{r}
+```{r grid-plot, warning=FALSE}
 # List of plots
 plist <- list(p.wld, p.ant, p.aus, p.eur)
 

@@ -95,7 +95,7 @@ rm(cmip.mask, mpa.cells)
 ## Find mean temperatures.
 
 Define latitudinal zones. We're just setting Northern hemisphere limits. Mirror image southern hemisphere limits will be derived within the function to calculate zonal means.
-`raster::extract` will be used, which selects cells by their centroid from `raster::extents`. This means we won't have 
+`raster::extract` will be used, which selects cells by their centroid from `raster::extents`. This means we shouldn't have duplicated cells contributing to different zones.
 
 ```{r define-zones}
 # Find global means
