@@ -420,7 +420,7 @@ NOTE: once set to maxpixels = 100000 in this plot, future plots keep this "maxpi
 
 In summary, the code needed to remove land surface temperatures from the CMIP5 surface temperature rasters is as follows:
 
-Requires land surface and CMIP5 datasets.
+Requires land surface, and the CMIP5 mean RCP 8.5 climate model dataset will be used here. 
 
 ```{r}
 ## Mask CMIP5 with land surface ##

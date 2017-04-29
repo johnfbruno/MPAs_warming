@@ -25,6 +25,8 @@ library(viridis) # Perceptually correct palettes
 library(raster) # Dealing with rasters
 library(rasterVis) # Plotting rasters 
 library(ncdf4) # Required - viewing and working with climate data in netCDF format
+library(rgdal) # Working with shapefiles
+library(rgeos) # Geometry engine
 library(gridExtra) # Grid arranged graphics
 library(grid) # Grid arrangement
 ```
@@ -126,7 +128,7 @@ list.files(localDir) # check unzip
 2. Read in land surface vector
 
 ```{r read-land-vector}
-library(rgdal) # For working with shapefiles
+
 # localDir object from chunk `get-land-vector`. Alternatively, specify location of the land vector shapefile.
 
 land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above.
@@ -309,6 +311,7 @@ p <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 
 p
+
 ```
 
 ```{r}
@@ -353,15 +356,60 @@ p_l <- p + theme(legend.position="none") # plot p from above
 g <- ggplotGrob(p + theme(legend.position = "right"))$grobs
 legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
 
-grid.arrange(
+mp <- grid.arrange(
   arrangeGrob(p_l,
               do.call(arrangeGrob, c(list(p_l, p_l, p_l), ncol=3, list(widths=c(1,1,1)))),
-          nrow=2, heights=c(2,1)), legend, nrow=1, widths=c(7,1))
+          nrow=2, heights=c(5,3)), legend, nrow=1, widths=c(8,1))
+
+
+
+ggsave(filename = "multi-plot", plot = mp, path = "../images/", device = "pdf", units = "in", width = 12, height = 8)
+
 ```
 
+### Final panel plot
 
+The world plot above contains some redundant areas near both poles. Antartica and the Arctic are warped to a large size and the poles don't contain any MPAs. We can trim these areas down to maximise the space avaiable for the rest of the globe. Something like crop at 80 degrees latitude seems appropriate. This is just for plotting, not for analysis.
 
+```{r crop-plot-data}
+# Crop raster and world land shapefile for better use of whole map space in plot.
+# Using `raster::extract`
+## Limits
+crop.e <- extent(c(-180, 180, -82, 84)) # Crop at 80 deg latitude
 
+## Raster
+crop.r <- crop(cmip.sst, crop.e)
+
+## World land
+localDir <- "../land"
+land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above. Creates a 'SpatialPolygonsDataFrame'
+land.gg <- fortify(land) 
+
+crop.l <- crop(land, crop.e)
+
+crop.l.gg <- fortify(crop.l) 
+
+## MPAs
+mpas.xy <- read.csv("../nn_extractedA2c.csv", header = TRUE)
+```
+
+Cropped world plot
+```{r}
+p.wc <- gplot(cmip.sst) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.40, 0.04)) +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+
+p.wc
+```
 
 
 

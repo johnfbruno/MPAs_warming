@@ -226,6 +226,12 @@ Version: 1.2-6
 Hash: 1ab4a3758d2ad5c8317fcf87f34c6868
 Requires: sp
 
+Package: rgeos
+Source: CRAN
+Version: 0.3-23
+Hash: 7f7ce992b079e8de185c20dfe1ae71c8
+Requires: sp
+
 Package: rmarkdown
 Source: CRAN
 Version: 1.3
