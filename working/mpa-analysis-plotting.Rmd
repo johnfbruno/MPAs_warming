@@ -236,6 +236,16 @@ Aim is to produce plot of CMIP raster, MPAs and land surface for four areas:
 
 The world plot above contains some redundant areas near both poles. Antartica and the Arctic are warped to a large size and the poles don't contain any MPAs. We can trim these areas down to maximise the space avaiable for the rest of the globe. Something like crop at 80 degrees latitude seems appropriate. This is just for plotting, not for analysis.
 
+Set some plot parameters for ease of use.
+
+```{r}
+# Size of axis text and guide bar text
+axis_guide_text <- element_text(size = 12)
+```
+
+
+
+
 ### Global plot
 ```{r}
 ##############
@@ -255,7 +265,8 @@ p.wld <- gplot(cmip) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
   geom_polygon(data = crop.land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
   geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 35, raster = TRUE)) +   
+  theme(legend.title = axis_guide_text, plot.title = element_text(size = 20, hjust = 0), axis.text = axis_guide_text, legend.text = axis_guide_text) +
   labs(title = "a") +
   xlab("") +
   ylab("") +
@@ -264,7 +275,8 @@ p.wld <- gplot(cmip) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 
 ggsave(filename = "globe", plot =  p.wld, device = pdf, path = "../images", width = 13, height = 8, units = "in")
-rm(lims)
+
+rm(lims, list = ls(patter = "^crop.*"))
 ```
 
 ### Antartic plot.
@@ -284,7 +296,8 @@ p.ant <- gplot(cmip) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
   geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
   geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   
+    theme(legend.title = axis_guide_text, plot.title = element_text(size = 20, hjust = 0), axis.text = axis_guide_text, legend.text = axis_guide_text) +
   labs(title = "b") +
   xlab("") +
   ylab("") +
@@ -293,7 +306,7 @@ p.ant <- gplot(cmip) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 p.ant
 ggsave(filename = "ant", plot =  p.ant, device = pdf, path = "../images", width = 8, height = 8, units = "in")
-rm(p.ant, world, lims)
+rm(world, lims)
 ```
 
 ### Australia/East Indies plot.
@@ -313,7 +326,8 @@ p.aus <- gplot(cmip) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
   geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
   geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   
+    theme(legend.title = axis_guide_text, plot.title = element_text(size = 20, hjust = 0), axis.text = axis_guide_text, legend.text = axis_guide_text) +
   labs(title = "c") +
   xlab("") +
   ylab("") +
@@ -322,7 +336,7 @@ p.aus <- gplot(cmip) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 p.aus
 ggsave(filename = "aus", plot =  p.aus, device = pdf, path = "../images", width = 8, height = 8, units = "in")
-rm(p.aus, world, lims)
+rm(world, lims)
 ```
 
 
@@ -331,7 +345,7 @@ rm(p.aus, world, lims)
 ##############
 # Crop world land shapefile using `raster::extract`
 ## Limits
-lims <- c(-25, 30, 30, 80) # Europe
+lims <- c(-27, 30, 30, 80) # Europe
 
 # Use `mapdata::world` land data here rather the more generalised Natural Earth .shp
 world <- map_data(map = "world", interior = FALSE)
@@ -343,20 +357,47 @@ p.eur <- gplot(cmip) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
   geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
   geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
-  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 10, raster = TRUE)) +   
+    theme(legend.title = axis_guide_text, plot.title = element_text(size = 20, hjust = 0), axis.text = axis_guide_text, legend.text = axis_guide_text) +
   labs(title = "d") +
   xlab("") +
   ylab("") +
-  scale_y_continuous(limits = lims[3:4] , expand = c(-0.05, 0)) +
-  scale_x_continuous(limits = lims[1:2], expand = c(-0.05,0)) +
+  scale_y_continuous(limits = lims[3:4] , expand = c(-0.02, 0)) +
+  scale_x_continuous(limits = lims[1:2], expand = c(-0.03,0)) +
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
 p.eur
 ggsave(filename = "eur", plot =  p.eur, device = pdf, path = "../images", width = 8, height = 8, units = "in")
-rm(p.eur, world, lims)
+rm(world, lims)
 ```
 
 
+### Grid plot
 
+`gridExtra::grid.arrange` gives us the arrangement we want; with 1:4 plots on the left and a single guide on the right.
+
+Plot with ggplot grobs (graphical objects)
+```{r}
+# List of plots
+plist <- list(p.wld, p.ant, p.aus, p.eur)
+
+# Get legend as grob
+g <- ggplotGrob(p.wld + theme(legend.position = "right"))$grobs 
+legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+
+# Remove legends from plots
+plist <- lapply(plist, function(x) x + theme(legend.position="none"))
+
+# Arrange plots in grid
+mp <- grid.arrange(
+  arrangeGrob(plist[[1]],
+              do.call(arrangeGrob, c(plist[2:4], ncol=3, list(widths=c(1,1,1)))),
+          nrow=2, heights=c(5,3)), legend, nrow=1, widths=c(8,1))
+
+
+ggsave(filename = "multi-plot", plot = mp, path = "../images/", device = "pdf", units = "in", width = 12, height = 10)
+
+rm(plist, g, mp, legend)
+```
 
 
 
