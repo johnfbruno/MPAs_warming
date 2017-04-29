@@ -1,0 +1,201 @@
+---
+title: "MPAs and climate change: analysis and plotting"
+author: "Mark Ruddy"
+date: "29 April 2017"
+output: html_document
+---
+
+## Task summary
+
+The project aims to look at projected climate warming in Marine Protected Areas. It uses climate models ([CMIP5](http://cmip-pcmdi.llnl.gov/cmip5/)) run for two emission scenarios (Representative Concentration Pathways - [RCPs](https://www.skepticalscience.com/rcp.php?t=1)) - 4.5degC and 8.5degC - developed as part of Intergovernmental Panel on Climate Change's (IPCC) Fifth Assessment Report ([AR5](http://www.ipcc-data.org/sim/gcm_monthly/AR5/)).
+
+As part of the study, modelled temperature data need to be modified to exclude land-based temperature measures. Additionally, adequate output maps need to be created.
+
+1. Code that removes the land surface temperatures from the CMIP5 surface temperature rasters.
+2. Plots of SST with land surface removed (white or black) and a pleasing SST key.
+
+
+## Setup
+
+```{r}
+# Packages
+library(dplyr) # Data wrangling and exploration
+library(ggplot2) # Plotting
+library(tidyr) # Data wrangling
+library(raster) # Dealing with rasters
+library(rasterVis) # Dealing with rasters
+library(viridis) # Perceptually sound palettes
+library(sp) # Classes and methods for spatial data
+library(ncdf4) # Required - viewing and working with climate data in netCDF format
+library(rgdal) # For working with shapefiles
+```
+
+
+## Data preparation: land surface temperature removal
+
+### Approach
+
+
+The approach I'll take is to select cells from the CMIP5 grid that fall *wholly* within the boundary of the world land surface polygon. This is because CMIP5 data is provided as a 360 \* 180 (1 \* 1 degree) grid. Raster-based analysis of temperatures - ie to quantify whole ocean or region warming - uses temperature data for each cell, so temperature values from single cells are what we're interested in. By only discarding cells that fall entirely within the land surface we ensure that SSTs for MPAs found within grid cells that overlap coastlines will be retained for analysis.
+
+Summary of process in dummy code:
+
+```{r}
+######################################
+### NOT IMPLEMENTED - DUMMY CODE ###
+## Mask CMIP5 with land surface ##
+# "cmip" is CMIP5 netCDF read in by raster
+# "land" is vector polygon land surface dataset
+cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
+
+## Get MPA cells ##
+# "mpas.xy" are the MPA longitude and latitude coordinate data
+mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
+mpa.cells <- mask(x = cmip, mask = mpas)
+
+## Merge land masked CMIP5 and MPA cells ##
+cmip.sst <- merge(cmip.mask, mpa.cells)
+
+######################################
+```
+
+
+### Read-in data
+
+Requires land surface, and the CMIP5 mean RCP 8.5 climate model dataset will be used here. 
+
+Read in Marine Protected Areas
+```{r}
+mpas.in <- read.csv("../nn_extractedA2c.csv", header = TRUE)
+mpas.xy <- mpas.in[,2:3]
+rm(mpas.in)
+```
+
+Read in CMIP5 RCP8.5 mean
+```{r get-cmip-test}
+cmip <- "../trend_yearmean_ensemble_tos_RCP85.nc"
+cmip <- raster(cmip) # Read in raster
+map.extent <- c(-180, 180, -90, 90) # Reset for layer, orginal orientation was 0-360 longitude
+extent(cmip) <- map.extent # Change extent
+
+source("../revrotate.R") # Rotate raster layer to align with MPA points
+cmip <- revrotate(cmip)
+extent(cmip) <- map.extent
+
+rm(map.extent, revrotate)
+```
+
+Obtain world land surface raster data
+
+Read in [Natural Earth](http://www.naturalearthdata.com/) 1:110m world vector, then convert to simple raster.
+
+```{r get-land-test}
+# Natural Earth 110m data. Comes as zip file 
+url <- "http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip" # web location
+
+localDir <- "../data"
+
+if (!file.exists(localDir)) {
+  dir.create(localDir)
+}
+
+dwnld <- paste(localDir, basename(url), sep = "/") # zip file destination
+
+if (!file.exists(dwnld)) {
+  download.file(url = url, destfile = dwnld, method = "auto") # download from web
+  unzip(dwnld, exdir = localDir) # unzip
+}
+
+land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above.
+
+rm(url, localDir, dwnld) # clean up workspace
+```
+
+
+```{r cmip-sst-only}
+## Mask CMIP5 with land surface ##
+# "cmip" is CMIP5 netCDF read in by raster
+# "land" is vector polygon land surface dataset
+cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
+
+## Get MPA cells ##
+# "mpas.xy" are the MPA longitude and latitude coordinate data
+mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
+
+mpa.cells <- mask(x = cmip, mask = mpas)
+
+## Merge land masked CMIP5 and MPA cells ##
+cmip.sst <- merge(cmip.mask, mpa.cells)
+
+Summary(cmip.sst)
+
+rm(cmip.mask, mpa.cells)
+```
+Resulting CMIP raster has min = 0.0018 and max = 0.16 degC/year cell values.
+
+Check for NA cells where MPAs are located
+
+```{r}
+mpa.check <- raster::extract(x = cmip.sst, y = SpatialPoints(mpas.xy)) # Use `raster::extract()` to disambiguate from `tidyr::extract()`
+length(mpa.check[is.na(mpa.check)])
+
+rm(mpa.check)
+```
+
+Should have 0 cells having temperature data intersecting with MPA locations.
+
+
+## Plotting
+
+Aim is to produce plot of CMIP raster, MPAs and land surface for four areas:
+
+1. Global
+2. The Antarctic peninsula
+3. North Australia, East Indies, Polynesia
+4. 
+
+
+The world plot above contains some redundant areas near both poles. Antartica and the Arctic are warped to a large size and the poles don't contain any MPAs. We can trim these areas down to maximise the space avaiable for the rest of the globe. Something like crop at 80 degrees latitude seems appropriate. This is just for plotting, not for analysis.
+
+```{r crop-plot-data}
+# Crop raster and world land shapefile for better use of whole map space in plot.
+# Using `raster::extract`
+## Limits
+crop.lim <- c(-180, 180, -82, 84) # Crop at 80 deg latitude
+
+## Raster
+# crop.r <- crop(cmip.sst, crop.e)
+
+## World land
+crop.land <- crop(land, extent(crop.lim))
+
+crop.land.gg <- fortify(crop.land) # Understandable by ggplot 
+
+rm(crop.land)
+```
+
+Cropped world plot
+```{r}
+p.wc <- gplot(cmip) + 
+  # Note1: plotting raster uses `rasterVis::gplot` here not `ggplot`.
+  # Note2: plot uses original cmip dataset without land-surface temperatures removed for aesthetic reasons - would otherwise show empty NA cells at some land margins.
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0, 0.16, 0.04)) +
+  geom_polygon(data = crop.land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.7, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 30, raster = TRUE)) +   theme(legend.title = element_text(size = 10), plot.title = element_text(size = 20, hjust = 0)) +
+  labs(title = "a") +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(limits = crop.lim[3:4] , breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+
+ggsave(filename = "worldtest", plot =  p.wc, device = pdf, path = "../images", width = 13, height = 8, units = "in")
+```
+
+
+
+
+
+
