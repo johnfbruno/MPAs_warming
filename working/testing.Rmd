@@ -13,7 +13,6 @@ library(raster)
 ```
 
 Make a raster.
-
 ```{r}
 set.seed(42)
 r <- raster(ncol=72, nrow=36)
@@ -39,26 +38,256 @@ plot(cells); points(p, pch = 16, cex = 0.5)
 
 
 
+## Raster summary statistics
+
+Aims is to find summary statistics for a geographic region.
+
+Read in Marine Protected Areas
+```{r}
+mpas.in <- read.csv("../nn_extractedA2c.csv", header = TRUE)
+
+mpas.xy <- mpas.in[,2:3]
+
+rm(mpas.in)
+```
+
+Read in CMIP5 RCP4.5 max
+```{r get-cmip-test}
+library(raster)
+library(ncdf4)
+
+cmip <- "../trend_yearmax_ensemble_RCP45.nc"
+cmip <- raster(cmip) # Read in raster
+map.extent <- c(-180, 180, -90, 90) # Reset for layer, orginal orientation was 0-360 longitude
+extent(cmip) <- map.extent # Change extent
+
+source("../revrotate.R") # Rotate raster layer to align with MPA points
+cmip <- revrotate(cmip)
+extent(cmip) <- map.extent
+
+rm("map.extent")
+```
+
+
+Read in [Natural Earth](http://www.naturalearthdata.com/) 1:110m world vector, then convert to simple raster.
+
+```{r get-land-test}
+library(rgdal)
+# Natural Earth 110m data. Comes as zip file 
+url <- "http://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/physical/ne_110m_land.zip" # web location
+
+localDir <- "../data"
+
+if (!file.exists(localDir)) {
+  dir.create(localDir)
+}
+
+dwnld <- paste(localDir, basename(url), sep = "/") # zip file destination
+
+if (!file.exists(dwnld)) {
+  download.file(url = url, destfile = dwnld, method = "auto") # download from web
+  unzip(dwnld, exdir = localDir) # unzip
+}
+
+land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above.
+
+rm(url, localDir, dwnld) # clean up workspace
+```
+
+
+```{r cmip-sst-only}
+## Mask CMIP5 with land surface ##
+# "cmip" is CMIP5 netCDF read in by raster
+# "land" is vector polygon land surface dataset
+cmip.mask <- mask(x = cmip, mask = land, inverse = TRUE)
+
+## Get MPA cells ##
+# "mpas.xy" are the MPA longitude and latitude coordinate data
+mpas <- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class
+
+mpa.cells <- mask(x = cmip, mask = mpas)
+
+## Merge land masked CMIP5 and MPA cells ##
+cmip.sst <- merge(cmip.mask, mpa.cells)
+
+rm(cmip.mask)
+```
+
+Find mean temperatures
+```{r}
+library(dplyr)
+library(tibble)
+
+# Data.frame for outputs
+zones <- c("global", "tropical", "sub-tropical", "temperate", "polar")
+zone.means <- data_frame(
+  zone = zones, mean_value = NA
+)
+
+# Find global means
+
+# Find regional means
+# Latitudinal zone extents
+## Longitudinal limits
+long.lims <- c(-180, 180) 
+## Global
+globe.ext <- extent(c(long.lims), 0, 90)
+## Tropical
+trop.ext <- extent(c(long.lims, -23.5, 23.5)) 
+## Sub-tropical
+nsubtrop.ext <- extent(c(long.lims, 23.5, 40))
+ssubtrop.ext <- extent(c(long.lims, -40, -23.5))
+## Temperate
+ntemp.ext <- extent(c(long.lims, 40, 66.5))
+stemp.ext <- extent(c(long.lims, -66.5, -40))
+## Polar
+npol.ext <- extent(c(long.lims, 66.5, 90))
+spol.ext <- extent(c(long.lims, -90, -66.5))
+
+# Mean raster values
+## Global
+zone.means[which(zone.means$zone=="global"),2] <- cellStats(cmip.sst, stat = "mean", na.rm = TRUE)
+
+## Tropical
+zone.means[which(zone.means$zone=="tropical"),2] <- extract(cmip.sst, trop.ext, fun = mean, na.rm = TRUE)
+
+## Other
+## Via function to get total means from raster combined, independent raster extents
+source("../functions/extent.mean.R")
+zone.means[which(zone.means$zone=="polar"),2] <- extent.means(cmip.sst, list(npol.ext, spol.ext))
+zone.means[which(zone.means$zone=="sub-tropical"),2] <- extent.means(cmip.sst, list(nsubtrop.ext, ssubtrop.ext))
+zone.means[which(zone.means$zone=="temperate"),2] <- extent.means(cmip.sst, list(ntemp.ext, stemp.ext))
+
+# extent.mean.test <- function(raster, extents) { # raster and list of extents
+#   e <- extents
+#   v <- unlist(lapply(e, function(x) extract(raster, x)))
+#   n <- length(!is.na(v))
+#   vm <- mean(v, na.rm = TRUE)
+#   out <- list(vm, n)
+#   out
+# }
+
+extent.mean.test <- function(raster, extents) { # raster and list of extents
+  e <- extents
+  v <- unlist(lapply(e, function(x) extract(raster, x)))
+  n <- length(v[!is.na(v)]) # count cells
+  # length(vec[!is.na(vec)])
+  vm <- mean(v, na.rm = TRUE)
+  out <- list(vm, n)
+  out
+}
+
+x <- extent.mean.test(cmip.sst, list(extent(c(long.lims), 0, 90), extent(c(long.lims), -90, 0)))
+
+# View(zone.means)
+x[[1]]; x[[2]]
+
+```
+
+Initialise tibble with list of lists
+```{r}
+l <- list(1:4)
+ll <- list(l,l)
+x <- 1:2
+tibble(
+  x = x,
+  y = ll
+)
+
+```
 
 
 
 
+Check cell count
+Global sea temperature values.
+```{r}
+
+# !is.na(cells)
+length(getValues(cmip.sst))-summary(cmip.sst)[6]
+
+
+vec <- unlist(lapply(list(extent(c(long.lims), 0, 90), extent(long.lims, -90, 0)), function(x) extract(cmip.sst, x)))
+
+length(vec[!is.na(vec)])
+
+length(!is.na(vec[[1]]))+length(vec[[2]]))
+n <- length(!is.na(vec)) # count cells
+n
+
+```
+
+## Test cowplot
+
+```{r}
+library(cowplot)
+library(grid) # for "unit"
+theme_set(theme_cowplot(font_size=12)) # default fontsize doesn't work well for online viewing
+```
+
+```{r}
+# down-sampled diamonds data set
+dsamp <- diamonds[sample(nrow(diamonds), 1000), ]
+
+# Make three plots.
+# We set left and right margins to 0 to remove unnecessary spacing in the
+# final plot arrangement.
+p1 <- qplot(carat, price, data=dsamp, colour=clarity) +
+  theme(plot.margin = unit(c(6,0,6,0), "pt"))
+p2 <- qplot(depth, price, data=dsamp, colour=clarity) +
+  theme(plot.margin = unit(c(6,0,6,0), "pt")) + ylab("")
+p3 <- qplot(color, price, data=dsamp, colour=clarity) +
+  theme(plot.margin = unit(c(6,0,6,0), "pt")) + ylab("")
+
+# arrange the three plots in a single row
+prow <- plot_grid( p1 + theme(legend.position="none"),
+           p2 + theme(legend.position="none"),
+           p3 + theme(legend.position="none"),
+           align = 'vh',
+           labels = c("A", "B", "C"),
+           hjust = -1,
+           nrow = 1
+           )
+prow
+```
 
 
 
+```{r}
+# extract the legend from one of the plots
+# (clearly the whole thing only makes sense if all plots
+# have the same legend, so we can arbitrarily pick one.)
+legend <- get_legend(p1)
+
+# add the legend to the row we made earlier. Give it one-third of the width
+# of one plot (via rel_widths).
+p <- plot_grid( prow, legend, rel_widths = c(3, .3))
+p
+```
 
 
 
+```{r}
+plot.mpg <- ggplot(mpg, aes(x = cty, y = hwy, colour = factor(cyl))) + 
+  geom_point(size=2.5)
+plot.mpg
+plot.diamonds <- ggplot(diamonds, aes(clarity, fill = cut)) + geom_bar() +
+  theme(axis.text.x = element_text(angle=70, vjust=0.5))
+plot.diamonds
+```
 
 
+```{r}
+library(ggplot2)
+library(gridExtra)
 
+p <- ggplot(data.frame(x=1, y=1), aes(x,y)) + geom_point()
 
-
-
-
-
-
-
+grid.arrange(
+  arrangeGrob(p, ncol = 1, widths = c(3)),
+  arrangeGrob(p, p ,p, ncol = 3, widths = rep(1,3)),
+  nrow=2)
+```
 
 
 

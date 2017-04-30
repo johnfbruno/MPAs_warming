@@ -20,8 +20,15 @@ This notebook will provide plots of SST with land surface removed (white or blac
 # Packages
 library(dplyr) # Data wrangling and exploration
 library(tidyr) # Data wrangling
+library(ggplot2) # Plotting
+library(viridis) # Perceptually correct palettes
 library(raster) # Dealing with rasters
+library(rasterVis) # Plotting rasters 
 library(ncdf4) # Required - viewing and working with climate data in netCDF format
+library(rgdal) # Working with shapefiles
+library(rgeos) # Geometry engine
+library(gridExtra) # Grid arranged graphics
+library(grid) # Grid arrangement
 ```
 
 ## Datasets
@@ -39,7 +46,7 @@ mean85 <- raster(name85) # Read in raster
 map.extent <- c(-180, 180, -90, 90) # Reset for layer, orginal orientation was 0-360 longitude
 extent(mean85) <- map.extent # Change extent
 
-source("../revrotate..R") # Rotate raster layer to align with MPA points
+source("../revrotate.R") # Rotate raster layer to align with MPA points
 mean85 <- revrotate(mean85)
 extent(mean85) <- map.extent
 rm("name85", "map.extent")
@@ -56,7 +63,6 @@ points(mpas[,2:3], pch = 10, cex = 0.3)
 ### Test plot temperature raster and MPAs - rasterVis
 
 ```{r}
-# library(rasterVis) # Plotting rasters 
 pts <- mpas[,2:3] # MPA points
 levelplot(mean85, margin = FALSE, par.settings = viridisTheme()) + 
   layer(sp.points(pts, pch = 10, cex = 0.3))
@@ -122,7 +128,7 @@ list.files(localDir) # check unzip
 2. Read in land surface vector
 
 ```{r read-land-vector}
-library(rgdal) # For working with shapefiles
+
 # localDir object from chunk `get-land-vector`. Alternatively, specify location of the land vector shapefile.
 
 land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above.
@@ -141,11 +147,11 @@ rm("land")
 3. Plot Earth polygon over temperature raster
 
 ```{r}
-p.land <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+p.land <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
   geom_raster(aes(fill = value)) +
   scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
-  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "white") +
-  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.1, colour = "black") + 
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
   guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
   theme(legend.title = element_text(size = 9)) +
   ggtitle("RCP 8.5 warming rate for mean SST") + 
@@ -156,10 +162,255 @@ p.land <- gplot(mean85.sst) + # Note: uses `gplot` here not `ggplot` - uses `ras
   geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
 
 p.land
+rm(p.land)
+```
+
+### Plot with world map from maps::map
+
+Try using the world map dataset the comes with R in `maps::world` instread of Natural Earth shapefile.
+
+```{r}
+library(maps) # Display of maps
+
+world <- map_data(map = "world", interior = FALSE)
+
+p.land <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) + 
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
+
+p.land
+rm(p.land)
+```
+
+From comparing the two maps I think the shapefile looks better. The shapefile has been generalised to remove detail in coastlines and small island chains such as the Aleutians, which are otherwise present in `maps:world`.
+
+
+### Panel plot of globe and 3 regions
+
+
+Plot world.
+```{r}
+p.world <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("RCP 8.5 warming rate for mean SST") +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+
+p.world
+```
+
+Plot Caribbean.
+We'll use `maps::world` here as it's more detailed at larger scales than Natural Earth's world .shp file.
+
+```{r}
+# Set 
+xlims = c(-90, -60)
+ylims = c(0, 35)
+world <- map_data(map = "world", interior = FALSE)
+
+p.carib <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  # geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+    geom_map(data = world, map = world, aes(x = long, y = lat, map_id = region), colour = "grey90", fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  ggtitle("x") + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  scale_x_continuous(limits = xlims, expand = c(0, -1)) +
+  scale_y_continuous(limits = ylims, expand = c(0, -1)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3)
+
+p.carib
 ```
 
 
+## Panel plot
 
+### Test panel plot 
+```{r}
+# library(gridExtra) # Grid arranged graphics
+# library(grid) # Grid arrangement
+
+grid.arrange(p.world, arrangeGrob(p.carib, p.carib, p.carib, heights = c(1/2, 1/2, 1/2), ncol = 3), ncol = 1, top = "Plots")
+```
+
+The guide_colorbar is not re-sizing within the grid. I'll try the suggestion given [here](https://github.com/tidyverse/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs) for producing a single legend.
+
+### Panel plot with separate legend
+
+Test 1
+```{r}
+  
+# source("../functions/share_guide.R")
+
+plots <- c("p.world", "p.world", "p.world", "p.world")
+position <- c("bottom", "right")
+ncol <- 1
+nrow <- 2
+position <- match.arg(position)
+
+g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+
+legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+lheight <- sum(legend$height)
+lwidth <- sum(legend$width)
+
+gl <- lapply(plots, function(x) x + theme(legend.position="none"))
+gl <- c(gl, ncol = 1, nrow = 2)
+gl <- c(c(gl[1], ncol = 1, nrow = 1), c(gl[-1], ncol = 3, nrow = 1))
+
+arrangeGrob(do.call(arrangeGrob, gl), legend, ncol = 2, widths = unit.c(unit(1, "npc") - lwidth, lwidth))
+
+
+
+```
+
+Test 2
+```{r}
+source("../functions/share_guide.R")
+
+grid_arrange_shared_guide("p.world", "p.world", "p.world", )
+```
+
+Test 3
+
+Plot world.
+```{r}
+p <- gplot(mean85) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.16, 0.02)) +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+
+p
+
+```
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+# p <- ggplot(data.frame(x=1, y=1), aes(x,y)) + geom_point()
+
+# g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+
+p_l <- p + theme(legend.position="none")
+g <- ggplotGrob(p + theme(legend.position = position))$grobs
+
+
+grid.arrange(
+  arrangeGrob(p_l, ncol = 1, widths = c(3)),
+  arrangeGrob(p_l, p_l, p_l, ncol = 3, widths = rep(1,3)),
+  nrow=2)
+
+
+
+
+```
+
+
+`gridExtra::grid.arrange` method
+```{r}
+gl <- lapply(1:5, function(ii) grobTree(rectGrob(),textGrob(ii)))
+
+grid.arrange(
+  arrangeGrob(gl[[1]],
+              do.call(arrangeGrob, c(gl[2:4], ncol=3, list(widths=c(1,1,1)))),
+          nrow=2, heights=c(2,1)), gl[[5]], nrow=1, widths=c(7,1))
+
+```
+
+`gridExtra::grid.arrange` gives us the arrangement we want; with 1:4 plots on the left and a single guide on the right.
+
+Plot with ggplot grobs (graphical objects)
+```{r}
+p_l <- p + theme(legend.position="none") # plot p from above
+g <- ggplotGrob(p + theme(legend.position = "right"))$grobs
+legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+
+mp <- grid.arrange(
+  arrangeGrob(p_l,
+              do.call(arrangeGrob, c(list(p_l, p_l, p_l), ncol=3, list(widths=c(1,1,1)))),
+          nrow=2, heights=c(5,3)), legend, nrow=1, widths=c(8,1))
+
+
+
+ggsave(filename = "multi-plot", plot = mp, path = "../images/", device = "pdf", units = "in", width = 12, height = 8)
+
+```
+
+### Final panel plot
+
+The world plot above contains some redundant areas near both poles. Antartica and the Arctic are warped to a large size and the poles don't contain any MPAs. We can trim these areas down to maximise the space avaiable for the rest of the globe. Something like crop at 80 degrees latitude seems appropriate. This is just for plotting, not for analysis.
+
+Only need to crop the shape file as `ggplot2` tries to join up the wrong polygon vertices in plots that merely limit axes.
+```{r crop-plot-data}
+# Crop raster and world land shapefile for better use of whole map space in plot.
+# Using `raster::extract`
+## Limits
+crop.e <- extent(c(-180, 180, -82, 84)) # Crop at 80 deg latitude
+
+## Raster
+crop.r <- crop(cmip.sst, crop.e)
+
+## World land
+localDir <- "../land"
+land <- readOGR(dsn = localDir) # Read in shapefile using `rgdal`. No need to specify shapefile name as there's only one in the directory we created above. Creates a 'SpatialPolygonsDataFrame'
+land.gg <- fortify(land) 
+
+crop.l <- crop(land, crop.e)
+
+crop.l.gg <- fortify(crop.l) 
+
+## MPAs
+mpas.xy <- read.csv("../nn_extractedA2c.csv", header = TRUE)
+```
+
+Cropped world plot
+```{r}
+p.wc <- gplot(cmip.sst) + # Note: uses `gplot` here not `ggplot` - uses `rasterVis`
+  geom_raster(aes(fill = value)) +
+  scale_fill_viridis(direction = -1, option = "plasma", breaks = seq(0.02, 0.40, 0.04)) +
+  geom_polygon(data = land.gg, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_point(data = mpas.xy, mapping = aes(x = Centroid_Longitude, y = Centroid_Latitude), size = 0.01, colour = "black") + 
+  guides(fill = guide_colorbar(title = expression(paste(degree, C,"/year")), barheight = 16, raster = TRUE)) + 
+  theme(legend.title = element_text(size = 9)) +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(breaks = seq(-80, 80, 40), expand = c(0,0)) +
+  scale_x_continuous(breaks = seq(-180, 180, 60), expand = c(0,0)) +
+  geom_hline(yintercept = c(-66.5, -40, -23.5, 23.5, 40, 66.5), linetype = 2, size = 0.3) 
+
+p.wc
+```
 
 
 
