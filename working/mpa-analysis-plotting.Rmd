@@ -77,8 +77,9 @@ Summary of process in dummy code:
 Requires land surface, and the CMIP5 mean RCP 8.5 climate model dataset will be used here. 
 
 Read in Marine Protected Areas
-```{r}
+```{r get-mpas}
 mpas.in <- read.csv("../nn_extractedA2c.csv", header = TRUE)
+mpas.in <- subset(x = mpas.in, subset = mpas.in$km<50) #subset the points less than 50 km from water
 mpas.xy <- mpas.in[,2:3]
 rm(mpas.in)
 ```
@@ -147,7 +148,7 @@ Resulting CMIP raster has min = 0.0018 and max = 0.16 degC/year cell values.
 
 Check for NA cells where MPAs are located
 
-```{r}
+```{r check-na-cells-mpa}
 mpa.check <- raster::extract(x = cmip.sst, y = SpatialPoints(mpas.xy)) # Use `raster::extract()` to disambiguate from `tidyr::extract()`
 length(mpa.check[is.na(mpa.check)])
 
@@ -203,7 +204,7 @@ rm(list = ls(pattern = ".*ext$|.*lims$"))
 
 
 Calculate zonal mean temperature values.
-```{r }
+```{r calc-zone-means}
 # Function to get raster means within extents
 # raster = raster of values
 # zones = df of zones, limits and empty values column for mean
@@ -221,13 +222,13 @@ rm(zones, zone.means, multi.extent.means, extent.mean)
 Let's check the cells captured by these limits to make sure there's no double counting. First, we'll find the number of non-NA cells in the SST raster globally, and then compare this number against the total of non-NA cells from recombining extracts made from splitting the original raster into zones. If the totals match then the latitudinal limits used develop the regional models don't overlap - cells aren't used twice. We would expect this not to be the case as `raster::extract` selects cells based on the proximity of their centroids within extents used to define sample areas.
 
 !is.na cells in SST raster globally
-```{r}
+```{r orig-not-na-cells}
 # !is.na cells in SST raster
 length(getValues(cmip.sst))-summary(cmip.sst)[6]
 ```
 
 Recombined !is.na cells
-```{r}
+```{r new-not-na-cells}
 sum(zone.means.sst$count[-1])
 ```
 
@@ -248,7 +249,7 @@ The world plot contains some redundant areas near both poles - Antarctica and th
 
 Set some plot parameters for ease of use across all plots.
 
-```{r}
+```{r plot-params}
 # Size of axis text and guide bar text
 axis_guide_text <- element_text(size = 12)
 ```
