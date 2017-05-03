@@ -218,7 +218,6 @@ We can see there are cells near the coasts that have been removed by the land su
 
 
 
-
 Another approach could be to turn the land polygons into a raster and then use this land raster to crop and mask the CMIP5 data. Inspiration is this stackexchange post: https://gis.stackexchange.com/a/92227. However, inspection of the `raster::rasterize` function, which transfers values from vector objects to raster, description states that:
 
 > For polygons, values are transferred if the polygon covers the center of a raster cell. For lines, values are transferred to all cells that are touched by a line. You can combine this behaviour by rasterizing polygons as lines first and then as polygons.
@@ -265,7 +264,7 @@ length(mpa.cells[is.na(mpa.cells)])
 
 rm(mpa.cells)
 ```
-There are 373 MPAs located on ocean cells. The projections for the CMIP5 and land surface are the same - CMIP5 is a geographic coordiante system from WGS84. Evidently there's some disagreement between the coordinates of MPAs and the land surface dataset. This could be error in the location of the MPAs or generalisation (simplification) of the small scale land surface polygons causing overlaps with near-shore MPAs. Or it 
+There are 373 MPAs located on ocean cells. The projections for the CMIP5 and land surface are the same - CMIP5 is a geographic coordinate system from WGS84. Evidently there's some disagreement between the coordinates of MPAs and the land surface dataset. This could be error in the location of the MPAs or generalisation (simplification) of the small scale land surface polygons causing overlaps with near-shore MPAs. 
 
 ```{r}
 # Clean up
