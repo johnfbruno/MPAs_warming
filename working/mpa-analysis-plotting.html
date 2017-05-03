@@ -153,21 +153,33 @@ library(rgdal) # For working with shapefiles</code></pre>
 <h2>Land surface temperature removal</h2>
 <div id="approach" class="section level3">
 <h3>Approach</h3>
-<p>The approach I’ll take is to select cells from the CMIP5 grid that fall <em>wholly</em> within the boundary of the world land surface polygon. This is because CMIP5 data is provided as a 360 * 180 (1 * 1 degree) grid. Raster-based analysis of temperatures - ie to quantify whole ocean or region warming - uses temperature data for each cell, so temperature values from single cells are what we’re interested in. By only discarding cells that fall entirely within the land surface we ensure that SSTs for MPAs found within grid cells that overlap coastlines will be retained for analysis.</p>
-<p>Summary of process in dummy code:</p>
+<p>The approach I’ll take is to select cells from the CMIP5 grid that fall <em>wholly</em> within the boundary of the world land surface polygon. CMIP5 data is provided as a 360 * 180 (1 * 1 degree) grid. Raster-based analysis of temperatures - ie to quantify whole ocean or region warming - uses temperature data for each cell, so temperature values from single cells are what we’re interested in. By only discarding cells that fall entirely within the land surface we ensure that SSTs for MPAs found within grid cells that overlap coastlines will be retained for analysis.</p>
+<p>During exploration of the process (see ‘mpa-raster-temperature-edit.Rmd’) it was found that around half CMIP raster cells intersecting with MPA points were being masked by the land polygon using <code>raster::mask</code>. Evidently these cells should be retained in the SST raster.</p>
+<p>The cause of this problem was a combination of:</p>
+<ul>
+<li>Primarily the <code>raster::mask</code> algorithm, which selects cells ‘…if the polygon covers the center of a raster cell’. This will cause a number near-shore cells to be removed, and these cells may be ones containing MPAs.</li>
+<li>Secondarily - likely - error in the location of the MPAs or generalisation (simplification) of the small scale land surface polygons causing overlaps with near-shore MPAs. (This wasn’t investigated in depth because of time constraints).</li>
+</ul>
+<p>So long as the study retains all cells that show sea temperatures and/or have MPA points in them we can be relaxed about how those cells are identified. A pragmatic approach is to:</p>
+<ol style="list-style-type: decimal">
+<li>Mask CMIP5 with land surface into ‘cmip.masked’ raster.</li>
+<li>Use the MPA coordinates to identify from CMIP <em>only</em> the cells we want to retain in a ‘mpa.cells’ raster.</li>
+<li>Merge ‘cmip.masked’ and ‘mpa.cells’ to give ‘cmip.sst’.</li>
+</ol>
+<p>A summary of complete workflow in dummy code:</p>
 <div id="section" class="section level38">
 <p></p>
-<p>NOT IMPLEMENTED - DUMMY CODE</p>
-<p>Mask CMIP5 with land surface</p>
+<p>NOT RUN - DUMMY CODE</p>
+<p><em>Mask CMIP5 with land surface</em></p>
 <p>“cmip” is CMIP5 netCDF read in by raster</p>
 <p>“land” is vector polygon land surface dataset</p>
-<p>/&gt; cmip.mask &lt;- mask(x = cmip, mask = land, inverse = TRUE)</p>
-<p>Get MPA cells</p>
+<p>$&gt; cmip.mask &lt;- mask(x = cmip, mask = land, inverse = TRUE)</p>
+<p><em>Get MPA cells</em></p>
 <p>“mpas.xy” are the MPA longitude and latitude coordinate data</p>
-<p>/&gt; mpas &lt;- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class</p>
-<p>/&gt; mpa.cells &lt;- mask(x = cmip, mask = mpas)</p>
-<p>Merge land masked CMIP5 and MPA cells</p>
-<p>/&gt; cmip.sst &lt;- merge(cmip.mask, mpa.cells)</p>
+<p>$&gt; mpas &lt;- SpatialPoints(mpas.xy) # Make MPAs into SpatialPoints class</p>
+<p>$&gt; mpa.cells &lt;- mask(x = cmip, mask = mpas)</p>
+<p><em>Merge land masked CMIP5 and MPA cells</em></p>
+<p>$&gt; cmip.sst &lt;- merge(cmip.mask, mpa.cells)</p>
 </div>
 <div id="section-1" class="section level38">
 <p></p>
