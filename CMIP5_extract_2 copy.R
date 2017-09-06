@@ -17,7 +17,7 @@ setwd("~/Dropbox/JB/Manuscripts/MPA_warming ms files for Git/MPAs_warming") #set
 ##########################
 
 #set up the model projections
-source("revrotate..R") #make sure file is in pathway, or setwd() to the attached file
+source("revrotate.R") #make sure file is in pathway, or setwd() to the attached file
 meanTrend8.5N<-raster("trend_yearmean_ensemble_tos_RCP85.nc")
 extent(meanTrend8.5N)<-c(-180,180,-90,90) #need to reset for this layer, orginal orientation was 0-360 longitude
 plot(meanTrend8.5N) #have a look
@@ -34,6 +34,10 @@ table1[,2]<-c("Model","8.5","4.5","8.5","4.5")
 
 #all MPAs
 nn.buffered.dat<-read.csv("nn_extractedA2c.csv") #read in .csv nn_extractedA2.csv with the MPA coordinates
+mpa.trend_mean.8.5N<-extract(meanTrend8.5N,nn.buffered.dat[,2:3])
+mean(mpa.trend_mean.8.5N)
+length(mpa.trend_mean.8.5N)
+
 ocean_mpa<-subset(nn.buffered.dat,nn.buffered.dat$km<50) #subset the points less than 50 km from water
 oceanmpa.trend_mean.8.5N<-extract(meanTrend8.5N,ocean_mpa[,2:3])
 mean(oceanmpa.trend_mean.8.5N) #0.0351363/yr = 3.5 degrees c over 100 years
@@ -80,6 +84,64 @@ length(subtropical_ocean_mpa.trend_mean.8.5N) #
 write.csv(subtropical_ocean_mpa.trend_mean.8.5N, file="ST_ocean_mpa.trend_mean.8.5N.csv")
 table1[1,6]<-paste("Subtropical (",length(subtropical_ocean_mpa.trend_mean.8.5N),")",sep='')
 table1[2,6]<-paste(round(mean(subtropical_ocean_mpa.trend_mean.8.5N,na.rm=T),3),"±",round(sd(subtropical_ocean_mpa.trend_mean.8.5N,na.rm=T),3),sep='')
+
+
+######### new anlysis to compare to downscaled CMIP5 output########
+#define extent: tropical & subtropical MPAs < 40
+trop_subtropic_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude>(-40)&Centroid_Latitude<40) 
+
+#extract values and calculate basic stats for 8.5N
+trop_subtropic_ocean_mpa.trend_mean.8.5N<-extract(meanTrend8.5N,trop_subtropic_ocean_mpa[,2:3])
+mean(trop_subtropic_ocean_mpa.trend_mean.8.5N) #0.032974732/yr
+sd(trop_subtropic_ocean_mpa.trend_mean.8.5N) #0.003495783
+length(trop_subtropic_ocean_mpa.trend_mean.8.5N) #5196 (2458+2738)
+hist(trop_subtropic_ocean_mpa.trend_mean.8.5N, main="RCP8.5", xlim = c(0.015, 0.050))
+
+#extract values and calculate basic stats for 4.5N
+#see code below to set up model projection
+trop_subtropic_ocean_mpa.trend_mean.4.5N<-extract(meanTrend4.5N,trop_subtropic_ocean_mpa[,2:3])
+mean(trop_subtropic_ocean_mpa.trend_mean.4.5N) #0.01435306/yr
+sd(trop_subtropic_ocean_mpa.trend_mean.4.5N) #0.001898087
+length(trop_subtropic_ocean_mpa.trend_mean.4.5N) #5196 (2458+2738)
+hist(trop_subtropic_ocean_mpa.trend_mean.4.5N, main="RCP4.5", xlim = c(0.01, 0.025))
+
+#code from Chris (Sept 6, 2017): "The figure below the code shows the value difference between the native raster and the downscaled raster. 
+#I would also suggest you run this code using the raster files you have been using for the final product just to make sure I don't have any older datasets and somehow am using an incorrect raster. "
+
+library(sp)
+library(raster)
+dscld<-raster("DS_trend_yearmean_tos_rcp85.nc") #downscaled mean 8.5
+x1<-raster("trend_yearmean_ensemble_tos_RCP85.nc") #native mean 8.5
+
+#plot(x1)
+#plot(dscld)
+x1<-rotate(x1)
+x1<-crop(x1,extent(dscld)) #crop to the same extent
+
+ag<-resample(dscld,x1) #agregate downscale for comparison
+dif2<-ag-x1
+
+plot(dif2) #find the difference in the rasters
+library(rasterVis)
+levelplot(dif2)
+
+### alternative longer method, same results...
+#ag<-resample(x1,dscld) #downscale 1x1 for comparison
+#dif<-dscld-ag
+#levelplot(dif)
+
+#linear regression
+x<-(-44:45) #rough latitude
+y<-rowSums(dif2)
+plot(x,y)
+reg<-lm(y~x)
+summary(reg) #significant bias by latitude
+abline(reg)
+
+
+
+########################################################################
+
 
 #Temerate MPAs 40-66.5
 temperate_ocean_mpa<-subset(ocean_mpa,Centroid_Latitude<66.5&Centroid_Latitude>40.0|Centroid_Latitude>-66.5&Centroid_Latitude<(-40.0)) #subset the points in temperate waters
